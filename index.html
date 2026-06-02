@@ -1355,6 +1355,25 @@
       svgEl.addEventListener('pointerdown', hideHint, { once: true });
       svgEl.addEventListener('wheel', hideHint, { once: true });
 
+      // Auto-fit on load so the map nicely fills the full-page viewport (with a little padding)
+      requestAnimationFrame(() => {
+        const vw = svgEl.clientWidth;
+        const vh = svgEl.clientHeight;
+        if (vw > 50 && vh > 50) {
+          const intrinsicW = 784;
+          const intrinsicH = 459;
+          const s = Math.min(vw / intrinsicW, vh / intrinsicH) * 0.92;
+          if (s > 0.1) {
+            scale = s;
+            const scaledW = intrinsicW * s;
+            const scaledH = intrinsicH * s;
+            tx = (vw - scaledW) / (2 * s);
+            ty = (vh - scaledH) / (2 * s);
+            applyTransform();
+          }
+        }
+      });
+
       // Also allow the old "random" or other code to occasionally fit if wanted (not required)
     }
 
