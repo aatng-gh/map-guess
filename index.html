@@ -96,14 +96,13 @@
       transform: scale(0.985);
     }
 
-    /* Subtle reveal "pop" */
-    @keyframes revealPop {
-      0% { transform: scale(0.6); opacity: 0; }
-      60% { transform: scale(1.08); }
-      100% { transform: scale(1); opacity: 1; }
+    /* Expand animation: country path grows from small (around its own bbox center) to full size.
+       Gives a nice "emerging / growing" effect when revealed. */
+    #world-map path.expanding {
+      transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .just-revealed {
-      animation: revealPop 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    #world-map path.revealed {
+      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1));
     }
 
     /* Banner entrance */
@@ -921,12 +920,18 @@
         path.setAttribute('fill', '#e2e8f0');
         path.setAttribute('stroke', '#64748b');
         path.setAttribute('stroke-width', '0.7');
-        path.classList.remove('revealed', 'just-revealed');
+        path.classList.remove('revealed', 'expanding');
+        // clean any expand animation styles
+        path.style.transition = '';
+        path.style.transformOrigin = '';
+        path.style.transform = '';
       });
     }
 
     /**
-     * Styles all paths belonging to a country id with the "revealed" emerald/teal colors.
+     * Styles all paths belonging to a country id with the "revealed" teal colors.
+     * Applies an "expand from small to big" animation around each path's own center
+     * so the country visually grows in place.
      * Handles both standalone <path id="xx"> and <g id="yy"> containing one or more <path>s.
      * @param {SVGSVGElement} svgEl
      * @param {CountryId} cid
@@ -950,9 +955,38 @@
         p.setAttribute('stroke-width', '1.1');
         p.classList.add('revealed');
 
-        // Nice pop animation on first reveal
-        p.classList.add('just-revealed');
-        setTimeout(() => p.classList.remove('just-revealed'), 450);
+        // Expand from small to full size around the path's own geometric center.
+        // This makes the country "grow" in place instead of a generic pop.
+        try {
+          const b = p.getBBox();
+          const cx = (b.x || 0) + (b.width || 0) / 2;
+          const cy = (b.y || 0) + (b.height || 0) / 2;
+
+          // Start from tiny scale, with no transition so it snaps to start state
+          p.style.transition = 'none';
+          p.style.transformOrigin = `${cx}px ${cy}px`;
+          p.style.transform = 'scale(0.05)';
+
+          // Force the browser to acknowledge the starting state
+          void p.getBoundingClientRect();
+
+          // Now enable the transition and go to full size
+          p.style.transition = 'transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1)';
+          p.style.transform = 'scale(1)';
+
+          p.classList.add('expanding');
+
+          // Clean up inline styles after the animation finishes so future
+          // global map transforms (pan/zoom) aren't affected.
+          setTimeout(() => {
+            p.style.transition = '';
+            p.style.transformOrigin = '';
+            p.style.transform = '';
+            p.classList.remove('expanding');
+          }, 450);
+        } catch (e) {
+          // If getBBox fails for some reason, just color it (no animation)
+        }
       });
     }
 
