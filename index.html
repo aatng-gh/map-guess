@@ -994,6 +994,9 @@
      * Adds a small centered <text> label for the country inside the labels layer.
      * Uses getBBox() on a representative path to find center.
      * Skips entirely if the bbox area is tiny (avoids clutter on small islands).
+     * Font size is dynamic but length-penalized + post-clamped (from full 180-country UI sweep
+     * testing for neighbor bbox overlap) so long names like "Bolivia, Plurinational State of"
+     * or "Congo, Democratic Republic of the" do not produce oversized pills that cover neighbors.
      * @param {CountryId} cid
      * @param {string} name
      * @param {SVGSVGElement} svgEl
@@ -1046,16 +1049,25 @@
       const cx = (bbox.x || 0) + (bbox.width || 0) / 2;
       const cy = (bbox.y || 0) + (bbox.height || 0) / 2;
 
-      // Dynamic font size (scales nicely when user zooms)
-      const size = Math.max(3.2, Math.min(8.5, Math.min(bbox.width || 10, bbox.height || 10) / 4.2));
+      // Dynamic font size (scales nicely when user zooms).
+      // UI testing over all 180 countries (bbox intersection vs neighbor land bboxes)
+      // showed long official names (e.g. "Bolivia, Plurinational State of", "Congo, Democratic Republic of the",
+      // "United Kingdom...", "Iran, Islamic Republic of", "Tanzania, United Republic of", "Venezuela...") produced
+      // very wide pills (w>100) that overlapped neighbor bboxes significantly at overview scale.
+      // Mitigation: length-aware cap + lower global max + tighter padding.
+      const base = Math.min(bbox.width || 10, bbox.height || 10) / 4.2;
+      const lenPenalty = Math.max(0.52, 1 - Math.max(0, (name.length - 14) * 0.026));
+      const size = Math.max(2.9, Math.min(6.5, base * lenPenalty));
 
       // Create label group so we can layer bg + text
       const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       labelGroup.setAttribute('pointer-events', 'none');
+      labelGroup.id = `label-${cid}`;
+      labelGroup.dataset.cid = cid;
 
       // Background pill for excellent contrast (best practice for cartographic labels)
-      const paddingX = size * 0.55;
-      const paddingY = size * 0.35;
+      const paddingX = size * 0.48;
+      const paddingY = size * 0.30;
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       bg.setAttribute('x', String(cx));
       bg.setAttribute('y', String(cy));
@@ -1102,6 +1114,30 @@
         bg.setAttribute('width', String(approxW));
         bg.setAttribute('y', String(cy - (size + paddingY * 2) / 2));
       }
+
+      // Post-adjust for still-excessive width (from UI label-overlap testing over all countries):
+      // if the pill would be excessively wide relative to the country's own main land bbox, downscale
+      // this label's font (and padding) to reduce visual spillover into neighboring countries.
+      try {
+        let finalW = parseFloat(bg.getAttribute('width')) || 0;
+        const ownW = (bbox.width || 10);
+        if (finalW > Math.max(40, ownW * 0.65)) {
+          const over = finalW / Math.max(40, ownW * 0.65);
+          const newFont = Math.max(2.8, size / Math.min(1.7, over));
+          text.setAttribute('font-size', String(newFont));
+          const tb2 = text.getBBox();
+          const pX2 = newFont * 0.48;
+          const pY2 = newFont * 0.30;
+          const pw2 = Math.max(14, tb2.width + pX2 * 2);
+          const ph2 = tb2.height + pY2 * 2;
+          bg.setAttribute('width', String(pw2));
+          bg.setAttribute('height', String(ph2));
+          bg.setAttribute('x', String(cx - pw2 / 2));
+          bg.setAttribute('y', String(cy - ph2 / 2));
+          bg.setAttribute('rx', String(Math.min(5, ph2 / 2)));
+          bg.setAttribute('ry', String(Math.min(5, ph2 / 2)));
+        }
+      } catch (e) {}
     }
 
     /**
@@ -1336,7 +1372,7 @@
         if (!el) return;
 
         const cid = el.id;
-        if (!cid || cid === 'world-map' || cid === 'labels') {
+        if (!cid || cid === 'world-map' || cid === 'labels' || cid === 'map-content') {
           return;
         }
 
@@ -1410,7 +1446,7 @@
       const ids = new Set(
         Array.from(svgEl.querySelectorAll('[id]'))
           .map((el) => el.id)
-          .filter((id) => id && id !== 'world-map' && id !== 'labels')
+          .filter((id) => id && id !== 'world-map' && id !== 'labels' && id !== 'map-content')
       );
       state.countryIds = ids;
       state.total = ids.size;
@@ -1631,7 +1667,7 @@
               const el = target.closest('[id]');
               if (el) {
                 const cid = el.id;
-                if (cid && cid !== 'world-map' && cid !== 'labels' &&
+                if (cid && cid !== 'world-map' && cid !== 'labels' && cid !== 'map-content' &&
                     state.countryIds && state.countryIds.has(cid)) {
                   revealCountry(cid);
                 }
@@ -1745,6 +1781,19 @@
     // Boot: wait for full load so getBBox and layout are reliable on all browsers
     window.addEventListener('load', () => {
       initMap();
+
+      // Expose test/automation API for UI testing (e.g. label overlap sweep).
+      // Not used in normal play; safe to leave (no side effects, no UI changes).
+      window.__MAP_TEST_API = {
+        getCountryIds() { return Array.from(state.countryIds || []); },
+        resetAll() { if (typeof resetAll === 'function') resetAll(); },
+        revealCountry(cid) { if (typeof revealCountry === 'function') revealCountry(cid); },
+        getRevealedCount() { return (state && state.revealed) ? state.revealed.size : 0; },
+        resetView() { const svg = document.getElementById('world-map'); if (svg && svg._resetView) svg._resetView(); },
+        getView() { const svg = document.getElementById('world-map'); return (svg && svg._getView) ? svg._getView() : { tx: 0, ty: 0, scale: 1 }; },
+        getLabel(cid) { return document.getElementById(`label-${cid}`); },
+        getPillRect(cid) { const g = document.getElementById(`label-${cid}`); return g ? g.querySelector('rect') : null; },
+      };
     });
   </script>
 </body>
