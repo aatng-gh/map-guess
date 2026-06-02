@@ -1525,29 +1525,18 @@
             // mark that a drag is happening so reveal clicks can be suppressed
             svgEl.dataset.dragging = 'true';
             if (dragCursorTarget) dragCursorTarget.classList.add('is-dragging-map');
-
-            // Re-anchor at the moment we engage real dragging (past threshold).
-            // This way tiny jitters never move the map (preserves tap detection),
-            // and when drag starts there is no visible "catch up" jump.
-            const cur = getSVGPoint(e);
-            dragStart = {
-              tx, ty,
-              worldX: cur.x, worldY: cur.y,
-              clientX: e.clientX, clientY: e.clientY
-            };
           }
 
-          if (hasDragged) {
-            // Anchor-based pan: keep the exact map point that was under the pointer
-            // at the start of the drag (or at engage time) "glued" to the moving pointer.
-            // Re-query the current world coordinate under the pointer each move using
-            // the SVG CTM for precision. Adjust tx/ty (pre-scale map units) to keep
-            // the grabbed point locked under the cursor. Eliminates drift/slip.
-            const curWorld = getSVGPoint(e);
-            tx = dragStart.tx + (curWorld.x - dragStart.worldX);
-            ty = dragStart.ty + (curWorld.y - dragStart.worldY);
-            applyTransform();
-          }
+          // Always pan using the anchor recorded at pointerdown (the exact map point
+          // under the pointer when the gesture started). This makes the map feel
+          // glued to the finger/cursor from the initial press with no drift or slip,
+          // using precise CTM-based world coords each step. The hasDragged flag only
+          // controls tap suppression + cursor state; small sub-threshold movements
+          // will be reverted on pointerup if it turns out to be a tap.
+          const curWorld = getSVGPoint(e);
+          tx = dragStart.tx + (curWorld.x - dragStart.worldX);
+          ty = dragStart.ty + (curWorld.y - dragStart.worldY);
+          applyTransform();
         } else if (activePointers.size === 2) {
           if (viewport) viewport.classList.add('dragging');
           // Pinch-to-zoom + pan
@@ -1593,6 +1582,14 @@
         if (activePointers.size === 0) {
           const wasDrag = hasDragged;
           if (dragStart) {
+            if (!wasDrag) {
+              // This turned out to be a tap (total movement under threshold).
+              // Revert any micro-pan that occurred during the press+small jitter
+              // so the view doesn't shift for taps. Then let the tap-reveal logic run.
+              tx = dragStart.tx;
+              ty = dragStart.ty;
+              applyTransform();
+            }
             dragStart = null;
           }
           hasDragged = false;
