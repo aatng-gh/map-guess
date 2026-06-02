@@ -50,13 +50,19 @@
 
     /* Viewport & gestures */
     #map-viewport {
-      cursor: grab;
+      cursor: default;
       -webkit-user-select: none;
       user-select: none;
     }
-    #map-viewport:active {
-      cursor: grabbing;
+    #map-viewport:hover {
+      cursor: grab;
     }
+    body.is-dragging-map {
+      cursor: grabbing !important;
+    }
+
+    /* Country paths are tappable, but we let the viewport control cursor for drag affordance on hover.
+       Tap feedback is visual (color change + label) + the bottom/recent panel. */
 
     /* Glassmorphic controls (iOS / modern best practice) */
     .glass {
@@ -1419,6 +1425,9 @@
         content.appendChild(labels);
       }
 
+      const viewport = document.getElementById('map-viewport');
+      const dragCursorTarget = document.body;
+
       let scale = 1;
       let tx = 0;
       let ty = 0;
@@ -1484,6 +1493,11 @@
         if (activePointers.size === 1) {
           dragStart = { tx, ty, x: e.clientX, y: e.clientY };
           hasDragged = false;
+          // do not add 'is-dragging-map' yet; only on actual move past threshold or pinch
+          // this way pure taps don't force grab cursor on press
+        }
+        if (activePointers.size >= 2 && dragCursorTarget) {
+          dragCursorTarget.classList.add('is-dragging-map');
         }
         // Clear pinch state when pointer count changes
         prevPinch = null;
@@ -1501,6 +1515,7 @@
             hasDragged = true;
             // mark that a drag is happening so reveal clicks can be suppressed
             svgEl.dataset.dragging = 'true';
+            if (dragCursorTarget) dragCursorTarget.classList.add('is-dragging-map');
           }
 
           if (hasDragged) {
@@ -1510,6 +1525,7 @@
             applyTransform();
           }
         } else if (activePointers.size === 2) {
+          if (viewport) viewport.classList.add('dragging');
           // Pinch-to-zoom + pan
           const pts = Array.from(activePointers.values());
           const [p0, p1] = pts;
@@ -1557,6 +1573,7 @@
           }
           hasDragged = false;
           delete svgEl.dataset.dragging;
+          if (dragCursorTarget) dragCursorTarget.classList.remove('is-dragging-map');
 
           if (wasDrag) {
             // Record when drag ended so click guards can suppress for a while.
@@ -1589,6 +1606,7 @@
           const [rem] = activePointers.values();
           dragStart = { tx, ty, x: rem.x, y: rem.y };
           hasDragged = false;
+          if (dragCursorTarget) dragCursorTarget.classList.remove('is-dragging-map');
         }
       }
 
