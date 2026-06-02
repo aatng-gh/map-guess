@@ -46,6 +46,17 @@ export default tseslint.config(
       '@typescript-eslint/no-empty-function': 'off',
     },
   },
+  {
+    files: ['**/*.svelte.ts'],
+    languageOptions: {
+      parserOptions: {
+        parser: tseslint.parser,
+      },
+    },
+    rules: {
+      'svelte/prefer-svelte-reactivity': 'off',
+    },
+  },
   prettier,
   ...svelte.configs['flat/prettier'],
 );

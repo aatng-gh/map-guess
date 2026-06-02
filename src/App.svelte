@@ -3,32 +3,8 @@
   import Map from '$lib/components/Map.svelte';
   import GamePanel from '$lib/components/GamePanel.svelte';
   import ZoomRail from '$lib/components/ZoomRail.svelte';
-  import { ALL_IDS } from '$lib/data/countries';
-
-  type CountryId = string;
-
-  // Core reactive state (runes) — reworking from old imperative state
-  // Use a class wrapper for reliable context reactivity (addresses Svelte 5 state capture warning)
-  class MapState {
-    revealed = $state(new Set<CountryId>());
-    view = $state({ tx: 0, ty: 0, scale: 1 });
-
-    reveal(cid: CountryId) {
-      this.revealed = new Set([...this.revealed, cid]);
-    }
-
-    resetAll() {
-      this.revealed = new Set();
-      this.view = { tx: 0, ty: 0, scale: 1 };
-    }
-
-    revealRandom() {
-      const unrevealed = Array.from(ALL_IDS).filter((id) => !this.revealed.has(id));
-      if (unrevealed.length === 0) return;
-      const pick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
-      this.reveal(pick);
-    }
-  }
+  import { MapState } from '$lib/game/mapState.svelte';
+  import { shouldIgnoreMapShortcut } from '$lib/gestures/mapGestures';
 
   const mapState = new MapState();
 
@@ -42,16 +18,22 @@
       getRevealedCount: () => mapState.revealed.size,
       getRevealed: () => Array.from(mapState.revealed),
       resetAll: () => mapState.resetAll(),
-      revealCountry: (cid: string) => mapState.reveal(cid as any),
+      revealCountry: (cid: string) => mapState.reveal(cid),
       getView: () => ({ ...mapState.view }),
+      getMode: () => mapState.mode,
+      getTargetName: () => mapState.targetName,
     };
   }
 
   // Keyboard (global, Svelte way — reworked from old document listener)
   function handleKeydown(e: KeyboardEvent) {
+    if (shouldIgnoreMapShortcut(e.target)) return;
+
     if (e.key.toLowerCase() === 'r') {
+      e.preventDefault();
       mapState.revealRandom();
     } else if (e.key === 'Escape') {
+      e.preventDefault();
       mapState.resetAll();
     }
   }
@@ -59,7 +41,10 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div id="map-viewport" class="absolute inset-0 overflow-hidden touch-none bg-[#0b1120]">
+<div
+  id="map-viewport"
+  class="absolute inset-0 overflow-hidden touch-none bg-[#0b1120]"
+>
   <!-- Declarative map (Phase 2 foundation) -->
   <Map bind:view={mapState.view} />
 
