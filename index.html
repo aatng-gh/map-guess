@@ -1304,6 +1304,9 @@
      * Clears all reveals: restores grey styles on every path,
      * removes every injected label, clears the revealed set,
      * resets counter and banner to initial state.
+     * ALWAYS also resets the viewport/pan-zoom back to the initial
+     * fitted overview (so Reset returns the user to the clean starting
+     * view of the whole map).
      * @returns {void}
      */
     function resetAll() {
@@ -1323,6 +1326,11 @@
       // UI
       updateCounter(0, state.total);
       setBanner('Tap any country to reveal its name');
+
+      // Always reset viewport to Fit as part of full reset (user request).
+      if (typeof state.svg._fitView === 'function') {
+        state.svg._fitView();
+      }
     }
 
     /**
@@ -1544,6 +1552,32 @@
         applyTransform();
       }
 
+      /**
+       * Fit the map to the current viewport (with slight padding).
+       * Computes the scale so the intrinsic map (784x459) nicely fills the
+       * available #map-viewport space. Used on initial load, FIT button,
+       * 'f' key, and always as part of resetAll() so Reset returns to
+       * the clean overview state.
+       * @returns {void}
+       */
+      function fitView() {
+        const vw = svgEl.clientWidth;
+        const vh = svgEl.clientHeight;
+        if (vw > 50 && vh > 50) {
+          const intrinsicW = 784;
+          const intrinsicH = 459;
+          const s = Math.min(vw / intrinsicW, vh / intrinsicH) * 0.92;
+          if (s > 0.1) {
+            scale = s;
+            const scaledW = intrinsicW * s;
+            const scaledH = intrinsicH * s;
+            tx = (vw - scaledW) / (2 * s);
+            ty = (vh - scaledH) / (2 * s);
+            applyTransform();
+          }
+        }
+      }
+
       // --- Multi-pointer tracking for unified mouse + touch gestures ---
       /** @type {Map<number, {x:number, y:number}>} */
       const activePointers = new Map();
@@ -1716,7 +1750,7 @@
         zoomBy(0.78);
       });
       if (btnFit) btnFit.addEventListener('click', () => {
-        scale = 1; tx = 0; ty = 0; applyTransform();
+        fitView();
       });
 
       // Keyboard support (global, handy on desktop/iPad with keyboard)
@@ -1726,15 +1760,17 @@
         } else if (e.key === '-' || e.key === '_') {
           e.preventDefault(); zoomBy(0.82);
         } else if (e.key.toLowerCase() === 'f') {
-          e.preventDefault(); scale = 1; tx = 0; ty = 0; applyTransform();
+          e.preventDefault();
+          fitView();
         }
       });
 
       // Initial transform (identity shows the original viewBox nicely)
       applyTransform();
 
-      // Small helper in case we want to reset view from elsewhere
-      svgEl._resetView = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
+      // Small helpers exposed for external use (locate, reset button, tests, keyboard 'f', FIT button).
+      svgEl._resetView = () => { scale = 1; tx = 0; ty = 0; applyTransform(); }; // 1:1 (actual size) transform reset
+      svgEl._fitView = fitView; // computed fit-to-viewport (what the FIT button and Reset use)
 
       // Fade and remove the gesture hint on first interaction (keeps full-page clean)
       const hint = document.getElementById('map-hint');
@@ -1751,21 +1787,7 @@
 
       // Auto-fit on load so the map nicely fills the full-page viewport (with a little padding)
       requestAnimationFrame(() => {
-        const vw = svgEl.clientWidth;
-        const vh = svgEl.clientHeight;
-        if (vw > 50 && vh > 50) {
-          const intrinsicW = 784;
-          const intrinsicH = 459;
-          const s = Math.min(vw / intrinsicW, vh / intrinsicH) * 0.92;
-          if (s > 0.1) {
-            scale = s;
-            const scaledW = intrinsicW * s;
-            const scaledH = intrinsicH * s;
-            tx = (vw - scaledW) / (2 * s);
-            ty = (vh - scaledH) / (2 * s);
-            applyTransform();
-          }
-        }
+        fitView();
       });
 
       // Also allow the old "random" or other code to occasionally fit if wanted (not required)
@@ -1789,7 +1811,8 @@
         resetAll() { if (typeof resetAll === 'function') resetAll(); },
         revealCountry(cid) { if (typeof revealCountry === 'function') revealCountry(cid); },
         getRevealedCount() { return (state && state.revealed) ? state.revealed.size : 0; },
-        resetView() { const svg = document.getElementById('world-map'); if (svg && svg._resetView) svg._resetView(); },
+        resetView() { const svg = document.getElementById('world-map'); if (svg && svg._fitView) svg._fitView(); },
+        fitView() { const svg = document.getElementById('world-map'); if (svg && svg._fitView) svg._fitView(); },
         getView() { const svg = document.getElementById('world-map'); return (svg && svg._getView) ? svg._getView() : { tx: 0, ty: 0, scale: 1 }; },
         getLabel(cid) { return document.getElementById(`label-${cid}`); },
         getPillRect(cid) { const g = document.getElementById(`label-${cid}`); return g ? g.querySelector('rect') : null; },
