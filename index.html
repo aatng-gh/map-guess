@@ -645,7 +645,7 @@
   "bj": "Benin",
   "bm": "Bermuda",
   "bt": "Bhutan",
-  "bo": "Bolivia, Plurinational State of",
+  "bo": "Bolivia",
   "bq": "Bonaire, Sint Eustatius and Saba",
   "ba": "Bosnia and Herzegovina",
   "bw": "Botswana",
@@ -670,7 +670,7 @@
   "co": "Colombia",
   "km": "Comoros",
   "cg": "Congo",
-  "cd": "Congo, Democratic Republic of the",
+  "cd": "DR Congo",
   "ck": "Cook Islands",
   "cr": "Costa Rica",
   "ci": "Côte d'Ivoire",
@@ -691,14 +691,14 @@
   "ee": "Estonia",
   "sz": "Eswatini",
   "et": "Ethiopia",
-  "fk": "Falkland Islands (Malvinas)",
+  "fk": "Falkland Islands",
   "fo": "Faroe Islands",
   "fj": "Fiji",
   "fi": "Finland",
   "fr": "France",
   "gf": "French Guiana",
   "pf": "French Polynesia",
-  "tf": "French Southern Territories",
+  "tf": "Fr. Southern Territories",
   "ga": "Gabon",
   "gm": "Gambia",
   "ge": "Georgia",
@@ -717,14 +717,14 @@
   "gy": "Guyana",
   "ht": "Haiti",
   "hm": "Heard Island and McDonald Islands",
-  "va": "Holy See",
+  "va": "Vatican City",
   "hn": "Honduras",
   "hk": "Hong Kong",
   "hu": "Hungary",
   "is": "Iceland",
   "in": "India",
   "id": "Indonesia",
-  "ir": "Iran, Islamic Republic of",
+  "ir": "Iran",
   "iq": "Iraq",
   "ie": "Ireland",
   "im": "Isle of Man",
@@ -737,11 +737,11 @@
   "kz": "Kazakhstan",
   "ke": "Kenya",
   "ki": "Kiribati",
-  "kp": "Korea, Democratic People's Republic of",
-  "kr": "Korea, Republic of",
+  "kp": "North Korea",
+  "kr": "South Korea",
   "kw": "Kuwait",
   "kg": "Kyrgyzstan",
-  "la": "Lao People's Democratic Republic",
+  "la": "Laos",
   "lv": "Latvia",
   "lb": "Lebanon",
   "ls": "Lesotho",
@@ -775,7 +775,7 @@
   "na": "Namibia",
   "nr": "Nauru",
   "np": "Nepal",
-  "nl": "Netherlands, Kingdom of the",
+  "nl": "Netherlands",
   "nc": "New Caledonia",
   "nz": "New Zealand",
   "ni": "Nicaragua",
@@ -789,7 +789,7 @@
   "om": "Oman",
   "pk": "Pakistan",
   "pw": "Palau",
-  "ps": "Palestine, State of",
+  "ps": "Palestine",
   "pa": "Panama",
   "pg": "Papua New Guinea",
   "py": "Paraguay",
@@ -802,10 +802,10 @@
   "qa": "Qatar",
   "re": "Réunion",
   "ro": "Romania",
-  "ru": "Russian Federation",
+  "ru": "Russia",
   "rw": "Rwanda",
   "bl": "Saint Barthélemy",
-  "sh": "Saint Helena, Ascension and Tristan da Cunha",
+  "sh": "Saint Helena",
   "kn": "Saint Kitts and Nevis",
   "lc": "Saint Lucia",
   "mf": "Saint Martin (French part)",
@@ -826,7 +826,7 @@
   "sb": "Solomon Islands",
   "so": "Somalia",
   "za": "South Africa",
-  "gs": "South Georgia and the South Sandwich Islands",
+  "gs": "South Georgia",
   "ss": "South Sudan",
   "es": "Spain",
   "lk": "Sri Lanka",
@@ -835,10 +835,10 @@
   "sj": "Svalbard and Jan Mayen",
   "se": "Sweden",
   "ch": "Switzerland",
-  "sy": "Syrian Arab Republic",
-  "tw": "Taiwan, Province of China",
+  "sy": "Syria",
+  "tw": "Taiwan",
   "tj": "Tajikistan",
-  "tz": "Tanzania, United Republic of",
+  "tz": "Tanzania",
   "th": "Thailand",
   "tl": "Timor-Leste",
   "tg": "Togo",
@@ -853,14 +853,14 @@
   "ug": "Uganda",
   "ua": "Ukraine",
   "ae": "United Arab Emirates",
-  "gb": "United Kingdom of Great Britain and Northern Ireland",
-  "us": "United States of America",
-  "um": "United States Minor Outlying Islands",
+  "gb": "United Kingdom",
+  "us": "United States",
+  "um": "U.S. Minor Outlying Is.",
   "uy": "Uruguay",
   "uz": "Uzbekistan",
   "vu": "Vanuatu",
-  "ve": "Venezuela, Bolivarian Republic of",
-  "vn": "Viet Nam",
+  "ve": "Venezuela",
+  "vn": "Vietnam",
   "vg": "Virgin Islands (British)",
   "vi": "Virgin Islands (U.S.)",
   "wf": "Wallis and Futuna",
@@ -982,8 +982,8 @@
      * Uses getBBox() on a representative path to find center.
      * Skips entirely if the bbox area is tiny (avoids clutter on small islands).
      * Font size is dynamic but length-penalized + post-clamped (from full 180-country UI sweep
-     * testing for neighbor bbox overlap) so long names like "Bolivia, Plurinational State of"
-     * or "Congo, Democratic Republic of the" do not produce oversized pills that cover neighbors.
+     * testing for neighbor bbox overlap). We also use short/common country names in COUNTRY_NAMES
+     * (e.g. "Iran", "DR Congo", "Russia") so labels stay compact and don't cover neighbors.
      * @param {CountryId} cid
      * @param {string} name
      * @param {SVGSVGElement} svgEl
@@ -1037,11 +1037,9 @@
       const cy = (bbox.y || 0) + (bbox.height || 0) / 2;
 
       // Dynamic font size (scales nicely when user zooms).
-      // UI testing over all 180 countries (bbox intersection vs neighbor land bboxes)
-      // showed long official names (e.g. "Bolivia, Plurinational State of", "Congo, Democratic Republic of the",
-      // "United Kingdom...", "Iran, Islamic Republic of", "Tanzania, United Republic of", "Venezuela...") produced
-      // very wide pills (w>100) that overlapped neighbor bboxes significantly at overview scale.
-      // Mitigation: length-aware cap + lower global max + tighter padding.
+      // UI testing showed that even with short names we use (see COUNTRY_NAMES), very long names
+      // or large countries could still produce wide pills. We keep length-aware sizing + clamping
+      // as a safety net so labels don't cover neighbors at overview scale.
       const base = Math.min(bbox.width || 10, bbox.height || 10) / 4.2;
       const lenPenalty = Math.max(0.52, 1 - Math.max(0, (name.length - 14) * 0.026));
       const size = Math.max(2.9, Math.min(6.5, base * lenPenalty));
