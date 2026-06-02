@@ -6,75 +6,148 @@
   <title>Map Guess</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Ocean background for the map */
+    /* === Refined Map & UI System (best practices + visual hierarchy) === */
+
+    :root {
+      --sea: #a5d8ff;
+      --land-unrevealed: #e2e8f0;
+      --land-unrevealed-stroke: #64748b;
+      --land-revealed: #14b8a6;
+      --land-revealed-stroke: #0f766e;
+      --glass: rgba(255,255,255,0.85);
+    }
+
+    /* Ocean / viewport */
     #world-map {
-      background: #a5d8ff;
+      background: linear-gradient(180deg, #bae6fd 0%, #7dd3fc 100%);
     }
-    /* Smooth color transitions on reveal */
+
+    /* Land styling - clear hierarchy between explored / unexplored */
     #world-map path {
-      transition: fill 120ms ease-out, stroke 120ms ease-out;
+      transition: fill 180ms cubic-bezier(0.2, 0.8, 0.2, 1), 
+                  stroke 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                  stroke-width 120ms ease;
+      vector-effect: non-scaling-stroke;
     }
-    /* Label text styling */
+
+    #world-map path.revealed {
+      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1));
+    }
+
+    /* Labels: high readability on any terrain (best practice for maps) */
     #world-map text {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-weight: 600;
-      letter-spacing: -0.01em;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      paint-order: stroke;
+      stroke: #fff;
+      stroke-width: 2.5;
+      stroke-linejoin: round;
     }
-    /* Make sure labels don't interfere with taps */
     #world-map #labels text {
       pointer-events: none;
     }
-    /* Large touch friendly buttons */
-    .touch-btn {
-      min-height: 44px;
-    }
-    /* Full page map viewport */
+
+    /* Viewport & gestures */
     #map-viewport {
       cursor: grab;
+      -webkit-user-select: none;
+      user-select: none;
     }
     #map-viewport:active {
       cursor: grabbing;
     }
-    /* Zoom buttons */
-    #zoom-in, #zoom-out, #zoom-fit {
-      user-select: none;
+
+    /* Glassmorphic controls (iOS / modern best practice) */
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.6);
     }
-    /* Map container sizing: iPad-first responsive */
-    .map-container {
-      width: 100%;
-      max-width: 920px;
-      margin-left: auto;
-      margin-right: auto;
+
+    .fab {
+      min-height: 48px;
+      min-width: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      transition: transform 120ms cubic-bezier(0.2,0.8,0.2,1), 
+                  box-shadow 120ms ease;
+    }
+    .fab:active {
+      transform: scale(0.94);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .touch-btn {
+      min-height: 44px;
+      transition: all 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .touch-btn:active {
+      transform: scale(0.985);
+    }
+
+    /* Subtle reveal "pop" */
+    @keyframes revealPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      60% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .just-revealed {
+      animation: revealPop 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* Banner entrance */
+    @keyframes bannerIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    #banner.active {
+      animation: bannerIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* Small visual progress */
+    .progress-ring {
+      transition: stroke-dashoffset 300ms ease;
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 h-screen flex flex-col overflow-hidden">
-  <!-- Full-page map experience -->
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
+  <!-- Full-page map experience - map is the hero -->
 
-    <!-- Slim top bar (always visible, minimal chrome) -->
-    <div class="h-12 sm:h-14 shrink-0 flex items-center justify-between px-3 sm:px-4 bg-white/95 backdrop-blur-md border-b border-slate-200 z-50">
-      <div class="flex items-center gap-3">
-        <span class="font-semibold text-2xl tracking-tighter">Map Guess</span>
-        <div class="flex items-center gap-1 text-sm bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-xl font-medium tabular-nums">
-          <span class="opacity-70 mr-0.5">Revealed</span><span id="count">0</span>/<span id="total">181</span>
+    <!-- Floating glass top bar (absolute for maximum map presence) -->
+    <div class="absolute top-3 left-3 right-3 z-50 flex items-center justify-between pointer-events-none">
+      <div class="glass flex items-center gap-3 px-4 h-11 rounded-3xl shadow-xl pointer-events-auto">
+        <span class="font-semibold text-xl tracking-[-0.02em]">Map Guess</span>
+        
+        <!-- Progress with visual bar - strong hierarchy -->
+        <div class="flex items-center gap-2 pl-3 border-l border-white/20">
+          <div>
+            <div class="text-[10px] font-medium tracking-widest text-teal-300/70">REVEALED</div>
+            <div class="font-semibold tabular-nums text-lg tracking-tighter leading-none">
+              <span id="count">0</span>/<span id="total">181</span>
+            </div>
+          </div>
+          <!-- Simple progress bar -->
+          <div class="w-9 h-1.5 bg-white/20 rounded-full overflow-hidden self-end mb-1">
+            <div id="progress-bar" 
+                 class="h-1.5 bg-teal-400 rounded-full transition-all duration-300"
+                 style="width: 0%"></div>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <!-- Zoom cluster -->
-        <div class="flex items-center rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
-          <button id="zoom-out" class="px-3 py-1 text-2xl leading-none font-light active:bg-slate-100" aria-label="Zoom out">−</button>
-          <button id="zoom-fit" class="px-3 py-1 text-[10px] font-semibold tracking-widest border-l border-r border-slate-200 active:bg-slate-100" aria-label="Fit to view">FIT</button>
-          <button id="zoom-in" class="px-3 py-1 text-2xl leading-none font-light active:bg-slate-100" aria-label="Zoom in">+</button>
-        </div>
-
-        <!-- Main actions -->
+      <!-- Right side actions in top bar -->
+      <div class="flex items-center gap-2 pointer-events-auto">
         <button id="random-btn"
-          class="touch-btn px-4 py-1.5 bg-emerald-600 active:bg-emerald-700 text-white text-sm font-semibold rounded-2xl shadow-sm transition">
-          Random
+          class="glass touch-btn px-4 h-11 text-sm font-semibold rounded-3xl active:scale-[0.985] transition flex items-center gap-1.5 shadow-xl text-emerald-300 hover:text-emerald-200">
+          <span>Random</span>
         </button>
         <button id="reset-btn"
-          class="touch-btn px-4 py-1.5 bg-slate-800 active:bg-black text-white text-sm font-semibold rounded-2xl shadow-sm transition">
+          class="glass touch-btn px-4 h-11 text-sm font-semibold rounded-3xl active:scale-[0.985] transition shadow-xl text-rose-300 hover:text-rose-200">
           Reset
         </button>
       </div>
@@ -82,8 +155,8 @@
 
     <!-- Full-bleed map viewport -->
     <div id="map-viewport"
-         class="flex-1 relative overflow-hidden bg-[#a5d8ff] touch-none"
-         style="min-height: 0;"> <!-- flex child -->
+         class="flex-1 relative overflow-hidden touch-none bg-[#0f172a]"
+         style="min-height: 0;">
       <svg id="world-map" version="1.1"
      xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -490,18 +563,38 @@
 
       <!-- Floating zoom hint (fades after first interaction) -->
       <div id="map-hint"
-           class="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-3 py-1 rounded-full bg-black/60 text-white/90 backdrop-blur tracking-wide">
-        Drag to pan • Pinch or wheel to zoom • Tap to reveal
+           class="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-4 py-1.5 rounded-2xl bg-black/70 text-white/90 backdrop-blur tracking-[0.5px]">
+        Drag • Pinch/scroll to zoom • Tap to reveal
+      </div>
+
+      <!-- Vertical zoom FAB rail (right side - excellent iPad ergonomics) -->
+      <div class="absolute right-3 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2 pointer-events-auto">
+        <button id="zoom-in"
+          class="fab glass w-11 h-11 text-3xl leading-none text-slate-700 active:text-slate-900 shadow-xl"
+          aria-label="Zoom in">+</button>
+        
+        <button id="zoom-fit"
+          class="fab glass w-11 h-11 text-[10px] font-bold tracking-[1.5px] text-slate-600 active:text-slate-900 shadow-xl"
+          aria-label="Fit map to screen">FIT</button>
+        
+        <button id="zoom-out"
+          class="fab glass w-11 h-11 text-3xl leading-none text-slate-700 active:text-slate-900 shadow-xl"
+          aria-label="Zoom out">−</button>
       </div>
     </div>
 
-    <!-- Floating bottom status banner (overlay on map) -->
+    <!-- Primary feedback: Bottom reveal card - strong visual weight when active -->
     <div id="banner"
-         class="absolute bottom-2 left-2 right-2 sm:left-auto sm:right-auto sm:bottom-3 sm:w-[min(420px,92%)] z-40
-                min-h-[52px] flex items-center justify-center px-5 py-3 bg-white/95 backdrop-blur-md rounded-3xl shadow-lg text-xl sm:text-2xl font-semibold text-slate-800 text-center border border-slate-200"
+         class="absolute bottom-3 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[320px] z-50
+                pointer-events-auto
+                min-h-[62px] flex items-center justify-center gap-3 px-6 py-4 
+                glass rounded-3xl shadow-2xl text-2xl sm:text-3xl font-semibold tracking-[-0.015em] text-slate-900 text-center border border-white/60"
          role="status"
          aria-live="polite">
-      Tap any country to reveal its name
+      <div class="flex items-baseline gap-2">
+        <span class="text-xs font-bold tracking-[1px] text-teal-600/80 self-center" style="display:none">REVEALED</span>
+        <span id="banner-name" class="font-semibold">Tap any country to reveal its name</span>
+      </div>
     </div>
 
   </div> <!-- / full flex col -->
@@ -819,8 +912,9 @@
       const paths = svgEl.querySelectorAll('path');
       paths.forEach((path) => {
         path.setAttribute('fill', '#e2e8f0');
-        path.setAttribute('stroke', '#94a3b8');
-        path.setAttribute('stroke-width', '0.6');
+        path.setAttribute('stroke', '#64748b');
+        path.setAttribute('stroke-width', '0.7');
+        path.classList.remove('revealed', 'just-revealed');
       });
     }
 
@@ -844,9 +938,14 @@
       }
 
       paths.forEach((p) => {
-        p.setAttribute('fill', '#34d399');
-        p.setAttribute('stroke', '#166534');
-        p.setAttribute('stroke-width', '0.9');
+        p.setAttribute('fill', '#14b8a6');
+        p.setAttribute('stroke', '#0f766e');
+        p.setAttribute('stroke-width', '1.1');
+        p.classList.add('revealed');
+
+        // Nice pop animation on first reveal
+        p.classList.add('just-revealed');
+        setTimeout(() => p.classList.remove('just-revealed'), 450);
       });
     }
 
@@ -889,6 +988,29 @@
       const cx = (bbox.x || 0) + (bbox.width || 0) / 2;
       const cy = (bbox.y || 0) + (bbox.height || 0) / 2;
 
+      // Dynamic font size (scales nicely when user zooms)
+      const size = Math.max(3.2, Math.min(8.5, Math.min(bbox.width || 10, bbox.height || 10) / 4.2));
+
+      // Create label group so we can layer bg + text
+      const labelGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      labelGroup.setAttribute('pointer-events', 'none');
+
+      // Background pill for excellent contrast (best practice for cartographic labels)
+      const paddingX = size * 0.55;
+      const paddingY = size * 0.35;
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('x', String(cx));
+      bg.setAttribute('y', String(cy));
+      bg.setAttribute('width', '0');   // will size after measuring text conceptually
+      bg.setAttribute('height', String(size + paddingY * 2));
+      bg.setAttribute('rx', String(size * 0.45));
+      bg.setAttribute('ry', String(size * 0.45));
+      bg.setAttribute('fill', 'rgba(255,255,255,0.92)');
+      bg.setAttribute('stroke', 'rgba(15,23,42,0.08)');
+      bg.setAttribute('stroke-width', '0.6');
+      // Center the rect (we'll adjust x after we know approx width)
+      labelGroup.appendChild(bg);
+
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', String(cx));
       text.setAttribute('y', String(cy));
@@ -896,15 +1018,32 @@
       text.setAttribute('dominant-baseline', 'central');
       text.setAttribute('pointer-events', 'none');
       text.setAttribute('fill', '#0f172a');
-
-      // Dynamic font size: larger for big countries, clamped for tiny-but-not-skipped
-      const size = Math.max(3.5, Math.min(9, Math.min(bbox.width || 10, bbox.height || 10) / 3.8));
       text.setAttribute('font-size', String(size));
-
-      // Use full name; overlaps are acceptable per design
       text.textContent = name;
 
-      labelsEl.appendChild(text);
+      labelGroup.appendChild(text);
+      labelsEl.appendChild(labelGroup);
+
+      // Perfect pill background using actual text bbox (best practice)
+      try {
+        // Force layout so getBBox is accurate
+        const textBox = text.getBBox();
+        const pillW = Math.max(16, textBox.width + paddingX * 2);
+        const pillH = textBox.height + paddingY * 2;
+
+        bg.setAttribute('x', String(cx - pillW / 2));
+        bg.setAttribute('y', String(cy - pillH / 2));
+        bg.setAttribute('width', String(pillW));
+        bg.setAttribute('height', String(pillH));
+        bg.setAttribute('rx', String(Math.min(6, pillH / 2)));
+        bg.setAttribute('ry', String(Math.min(6, pillH / 2)));
+      } catch (e) {
+        // Fallback to heuristic if getBBox fails on text
+        const approxW = Math.max(18, name.length * size * 0.55 + paddingX * 2);
+        bg.setAttribute('x', String(cx - approxW / 2));
+        bg.setAttribute('width', String(approxW));
+        bg.setAttribute('y', String(cy - (size + paddingY * 2) / 2));
+      }
     }
 
     /**
@@ -918,6 +1057,13 @@
       const totalEl = document.getElementById('total');
       if (countEl) countEl.textContent = String(count);
       if (totalEl) totalEl.textContent = String(totalCount);
+
+      // Visual progress bar for hierarchy
+      const bar = document.getElementById('progress-bar');
+      if (bar && totalCount > 0) {
+        const pct = Math.round((count / totalCount) * 100);
+        bar.style.width = pct + '%';
+      }
     }
 
     /**
@@ -925,10 +1071,29 @@
      * @param {string} message
      * @returns {void}
      */
-    function setBanner(message) {
+    function setBanner(message, isReveal = false) {
       const banner = document.getElementById('banner');
-      if (banner) {
-        banner.textContent = message;
+      const prefixEl = banner ? banner.querySelector('.text-teal-600\\/80') : null;
+      const nameEl = document.getElementById('banner-name') || banner;
+      
+      if (banner && nameEl) {
+        nameEl.textContent = message;
+        
+        // Hide the "REVEALED" prefix for the initial instruction state
+        const isInstruction = message.toLowerCase().includes('tap any');
+        if (prefixEl) {
+          prefixEl.style.display = isInstruction ? 'none' : '';
+        }
+        
+        // Visual hierarchy feedback: stronger presence on actual reveal
+        if (isReveal) {
+          banner.classList.add('active', 'ring-1', 'ring-teal-500/30');
+          setTimeout(() => {
+            banner.classList.remove('active');
+          }, 650);
+        } else {
+          banner.classList.remove('ring-1', 'ring-teal-500/30');
+        }
       }
     }
 
@@ -945,7 +1110,7 @@
 
       if (state.revealed.has(cid)) {
         // Idempotent: just re-show in banner, no duplicate work
-        setBanner(name);
+        setBanner(name, true);
         return;
       }
 
@@ -963,7 +1128,7 @@
 
       // UI updates
       updateCounter(state.revealed.size, state.total);
-      setBanner(name);
+      setBanner(name, true);
     }
 
     /**
@@ -1005,7 +1170,7 @@
       });
 
       if (unrevealed.length === 0) {
-        setBanner('All countries revealed!');
+        setBanner('All countries revealed!', true);
         return;
       }
 
