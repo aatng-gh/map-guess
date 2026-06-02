@@ -25,32 +25,41 @@ All gestures work great on iPad (primary target) and phones.
 - **Map gestures**: Drag to pan, wheel/pinch to zoom, double-tap to zoom, tap countries to reveal.
 - Keyboard: +/− for zoom, F to fit, R for random, Esc to reset reveals.
 
-## Run locally
+## Run locally (Svelte)
 
-Just open `index.html` in a browser.
-
-Or run a quick server:
-
-```
-python -m http.server
+```bash
+npm install
+npm run dev
 ```
 
-Then visit http://localhost:8000.
+Visit http://localhost:5173.
+
+Build for production:
+
+```bash
+npm run build
+```
+
+The static output in `dist/` can be served by any static host.
 
 ## Deploy to GitHub Pages
 
-Push `index.html` + this README to the root of your repo on the `main` branch.
+1. `npm run build`
+2. Push the `dist/` contents (or use a GitHub Action that builds and deploys `dist`).
 
-In GitHub repo → Settings → Pages:
-
-- Source: "Deploy from a branch"
-- Branch: `main` / (root)
-
-Save and visit the URL (like `https://yourname.github.io/your-repo/`).
+Or enable Pages "Deploy from a branch" pointing at a `gh-pages` branch containing the built files.
 
 ## Tech
 
-Single-file vanilla app with JSDoc types. No build, no deps (Tailwind CDN only). Optimized for iPad/tablet + mobile with big touch targets and responsive layout.
+Svelte 5 (runes mode) + Vite + TypeScript + Tailwind.
+
+- Data-driven declarative SVG map (extracted country paths + groups).
+- Reworked pointer events + state in a reusable `use:panzoom` action (world-anchored pan, pinch, threshold-based tap suppression, no-drift math).
+- Apple Liquid Glass design language (unified frosted materials, specular highlights, coherent tokens, vibrant yet harmonious palette).
+- No runtime DOM mutation for reveals (pure reactive classes + Svelte each).
+- iPad/touch-first with large targets and robust gesture separation.
+
+Original single-file vanilla implementation preserved as `index.vanilla.html` for reference.
 
 ## Screenshots
 

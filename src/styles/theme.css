@@ -1,0 +1,550 @@
+/* =====================================================
+   Map Guess — Svelte + Apple Liquid Glass Design System
+   Coherent tokens, materials, map styles. No hard-coded
+   colors in JS. Follows HIG / Liquid Glass principles.
+   ===================================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Base / System Tokens (Liquid Glass friendly) --- */
+:root {
+  /* Map ocean & terrain (refined for contrast + glass harmony) */
+  --sea-start: #bae6fd;
+  --sea-end: #7dd3fc;
+  --viewport-bg: #0b1120;
+  --land-unrevealed: #e5e7eb;
+  --land-unrevealed-stroke: #64748b;
+  --land-revealed: #14b8a6;
+  --land-revealed-stroke: #0f766e;
+  --land-revealed-shadow: rgb(0 0 0 / 0.12);
+
+  /* Liquid Glass Materials (dark frosted, adaptive tint) */
+  --glass-bg: rgba(15, 23, 42, 0.72);
+  --glass-bg-strong: rgba(15, 23, 42, 0.85);
+  --glass-bg-solid: rgb(15 23 42 / 0.96);
+  --glass-control-bg: rgba(15, 23, 42, 0.68);
+  --glass-control-bg-hover: color-mix(in oklch, var(--glass-bg), white 8%);
+  --glass-control-bg-active: color-mix(in oklch, var(--glass-bg), black 8%);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-border-strong: rgba(255, 255, 255, 0.32);
+  --glass-tint-accent: rgba(20, 184, 166, 0.08);
+  --glass-blur: 28px;
+  --glass-blur-thin: 14px;
+  --glass-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.18), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --glass-shadow-raised: 0 16px 24px -8px rgb(0 0 0 / 0.28), 0 6px 12px -8px rgb(0 0 0 / 0.18);
+  --glass-shadow-pressed: 0 4px 8px -4px rgb(0 0 0 / 0.22);
+  --glass-inner-highlight: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 40%, transparent 60%);
+  --glass-inner-highlight-strong: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 44%, transparent 68%);
+
+  /* Accents (unified, Apple-like vibrancy) */
+  --accent: #14b8a6;
+  --accent-emphasis: #0f766e;
+  --accent-positive: #10b981;
+  --accent-positive-solid: #059669;
+  --danger: #e11d48;
+  --danger-solid: #be123c;
+  --text-on-glass: #f8fafc;
+  --text-muted: #94a3b8;
+  --focus-ring: color-mix(in oklch, var(--accent), white 28%);
+  --progress-track: rgba(255, 255, 255, 0.22);
+
+  /* Typography & radii (HIG-inspired) */
+  --radius-panel: 22px;
+  --radius-fab: 9999px;
+  --radius-pill: 9999px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Durations */
+  --dur-fast: 120ms;
+  --dur-med: 220ms;
+  --dur-expand: 420ms;
+}
+
+/* --- Global resets & base --- */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--viewport-bg);
+  color: #f1f5f9;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* --- Liquid Glass Core Materials --- */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.65);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.65);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-on-glass);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular / liquid highlight layer (the "Liquid Glass" signature) */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-inner-highlight);
+  pointer-events: none;
+  border-radius: inherit;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.glass-panel {
+  border-radius: var(--radius-panel);
+  padding: 1rem;
+}
+
+.glass-fab,
+.glass-btn {
+  min-height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-fab);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-control-bg);
+  backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.5);
+  -webkit-backdrop-filter: blur(var(--glass-blur-thin)) saturate(1.5);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-on-glass);
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    background var(--dur-fast) ease;
+}
+
+.glass-fab::before,
+.glass-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glass-inner-highlight);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.glass-fab:hover,
+.glass-btn:hover,
+.glass-fab:focus-visible,
+.glass-btn:focus-visible {
+  background: var(--glass-control-bg-hover);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-raised);
+  transform: translateY(-1px);
+}
+
+.glass-fab:hover::before,
+.glass-btn:hover::before,
+.glass-fab:focus-visible::before,
+.glass-btn:focus-visible::before {
+  opacity: 0.8;
+}
+
+.glass-fab:active,
+.glass-btn:active {
+  background: var(--glass-control-bg-active);
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--glass-shadow-pressed);
+}
+
+.glass-panel .glass-fab,
+.glass-panel .glass-btn,
+.glass-panel .touch-target.glass {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, 0 4px 10px -6px rgb(0 0 0 / 0.24);
+}
+
+.glass-panel .glass-fab:hover,
+.glass-panel .glass-btn:hover,
+.glass-panel .touch-target.glass:hover,
+.glass-panel .glass-fab:focus-visible,
+.glass-panel .glass-btn:focus-visible,
+.glass-panel .touch-target.glass:focus-visible {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.14) inset, 0 8px 16px -8px rgb(0 0 0 / 0.3);
+}
+
+/* Tinted variants for primary/destructive actions */
+.glass-positive {
+  background: color-mix(in oklch, var(--glass-bg), var(--accent-positive) 12%);
+  border-color: color-mix(in oklch, var(--glass-border), var(--accent-positive) 25%);
+}
+
+.glass-danger {
+  background: color-mix(in oklch, var(--glass-bg), var(--danger) 10%);
+  border-color: color-mix(in oklch, var(--glass-border), var(--danger) 25%);
+}
+
+.glass-positive:hover,
+.glass-positive:focus-visible {
+  background: color-mix(in oklch, var(--glass-bg), var(--accent-positive) 20%);
+  border-color: color-mix(in oklch, var(--glass-border-strong), var(--accent-positive) 35%);
+}
+
+.glass-danger:hover,
+.glass-danger:focus-visible {
+  background: color-mix(in oklch, var(--glass-bg), var(--danger) 18%);
+  border-color: color-mix(in oklch, var(--glass-border-strong), var(--danger) 35%);
+}
+
+.glass-contained,
+.glass-contained-positive,
+.glass-contained-danger {
+  border: 1px solid transparent;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.16) inset, 0 8px 14px -10px rgb(0 0 0 / 0.36);
+  color: white;
+}
+
+.glass-contained {
+  background: color-mix(in oklch, var(--glass-bg-strong), white 12%);
+  border-color: color-mix(in oklch, var(--glass-border), white 18%);
+}
+
+.glass-contained-positive {
+  background: var(--accent-positive-solid);
+}
+
+.glass-contained-danger {
+  background: var(--danger-solid);
+}
+
+.glass-contained:hover,
+.glass-contained:focus-visible {
+  background: color-mix(in oklch, var(--glass-bg-strong), white 18%);
+}
+
+.glass-contained-positive:hover,
+.glass-contained-positive:focus-visible {
+  background: color-mix(in oklch, var(--accent-positive-solid), white 10%);
+}
+
+.glass-contained-danger:hover,
+.glass-contained-danger:focus-visible {
+  background: color-mix(in oklch, var(--danger-solid), white 10%);
+}
+
+.glass-contained:active,
+.glass-contained-positive:active,
+.glass-contained-danger:active {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, var(--glass-shadow-pressed);
+}
+
+/* --- Map Specific (ported + refined) --- */
+#world-map {
+  background: linear-gradient(180deg, var(--sea-start) 0%, var(--sea-end) 100%);
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#world-map path {
+  transition: fill var(--dur-med) var(--ease),
+              stroke var(--dur-med) var(--ease),
+              stroke-width 120ms ease;
+  vector-effect: non-scaling-stroke;
+}
+
+#world-map path.revealed {
+  filter: drop-shadow(0 1px 2px var(--land-revealed-shadow));
+}
+
+#world-map text,
+#labels text {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Viewport & gesture affordances */
+/*
+  Cursor states (per request):
+  - default: ocean (non-land areas of the map) — normal cursor, no special on hover.
+  - pointer: countries/land (g[data-cid] and contained paths) on hover — signals click-to-reveal priority.
+  - drag/grabbing: only when holding mouse down AND movement has passed the DRAG_THRESHOLD (anywhere on map).
+*/
+#map-viewport {
+  cursor: default;
+}
+
+/* Ensure ocean/sea areas (svg, map-content not covered by land) use default cursor */
+#world-map,
+#map-content {
+  cursor: default;
+}
+
+/* Pointer cursor over countries/land for click priority (overrides default) */
+#map-viewport g[data-cid],
+#map-viewport g[data-cid] path {
+  cursor: pointer;
+}
+
+body.is-dragging-map,
+#world-map.dragging,
+body.is-dragging-map #world-map,
+body.is-dragging-map #map-content,
+#world-map.dragging #map-content {
+  cursor: grabbing !important;
+}
+
+/* Ensure grabbing cursor wins over land pointer during active drag (hold + past threshold) */
+body.is-dragging-map #map-viewport g[data-cid],
+#world-map.dragging g[data-cid],
+body.is-dragging-map #map-viewport g[data-cid] path,
+#world-map.dragging g[data-cid] path {
+  cursor: grabbing !important;
+}
+
+/* Expand animation (grows from bbox center via CSS var set by Svelte) */
+#world-map path.expanding {
+  transition: transform var(--dur-expand) var(--ease);
+}
+
+/* --- UI Overlays (full Liquid Glass) --- */
+#game-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 260px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+#zoom-rail {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+#map-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  background: rgba(0,0,0,0.65);
+  color: rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 6px 16px -10px rgb(0 0 0 / 0.5);
+  letter-spacing: 0.5px;
+}
+
+/* Progress */
+.progress-track {
+  height: 3px;
+  background: var(--progress-track);
+  border-radius: 9999px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 9999px;
+  transition: width 300ms ease;
+}
+
+/* Touch / interaction polish */
+.touch-target {
+  min-height: 44px;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+.touch-target:hover,
+.touch-target:focus-visible {
+  transform: translateY(-1px);
+}
+
+.touch-target:active {
+  transform: scale(0.985);
+}
+
+/* Focus for a11y (harmonized with glass) */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.glass:focus-visible,
+.glass-fab:focus-visible,
+.glass-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Small utility for revealed labels in SVG */
+.label-pill {
+  fill: rgba(255,255,255,0.94);
+  stroke: rgba(15,23,42,0.1);
+  stroke-width: 0.6;
+}
+
+/* Ensure map content group receives transforms cleanly */
+#map-content {
+  transform-origin: 0 0;
+}
+
+/* Responsive tweaks (keep iPad-first) */
+@media (max-width: 640px) {
+  #game-panel {
+    width: calc(100% - 24px);
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 12px;
+  }
+
+  #map-hint {
+    display: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-fab,
+  .glass-btn,
+  #map-hint {
+    background: var(--glass-bg-solid);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: var(--glass-bg-solid);
+    --glass-bg-strong: rgb(15 23 42);
+    --glass-control-bg: rgb(15 23 42);
+    --glass-control-bg-hover: rgb(30 41 59);
+    --glass-control-bg-active: rgb(2 6 23);
+    --glass-border: rgba(255, 255, 255, 0.28);
+    --glass-border-strong: rgba(255, 255, 255, 0.48);
+    --glass-inner-highlight: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 48%);
+    --glass-inner-highlight-strong: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 52%);
+    --glass-shadow: 0 8px 16px -8px rgb(0 0 0 / 0.42);
+    --glass-shadow-raised: 0 10px 20px -10px rgb(0 0 0 / 0.5);
+    --progress-track: rgba(255, 255, 255, 0.36);
+  }
+
+  .glass,
+  .glass-fab,
+  .glass-btn,
+  #map-hint {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass::before,
+  .glass-fab::before,
+  .glass-btn::before {
+    mix-blend-mode: normal;
+  }
+
+  #map-hint {
+    background: rgb(15 23 42);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass-bg: rgba(2, 6, 23, 0.92);
+    --glass-bg-strong: rgba(2, 6, 23, 0.98);
+    --glass-control-bg: rgba(2, 6, 23, 0.9);
+    --glass-control-bg-hover: rgba(15, 23, 42, 0.96);
+    --glass-control-bg-active: rgb(2 6 23);
+    --glass-border: rgba(255, 255, 255, 0.42);
+    --glass-border-strong: rgba(255, 255, 255, 0.72);
+    --glass-inner-highlight: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 46%, transparent 66%);
+    --text-muted: #cbd5e1;
+    --focus-ring: #5eead4;
+    --progress-track: rgba(255, 255, 255, 0.42);
+  }
+
+  .glass,
+  .glass-fab,
+  .glass-btn,
+  #map-hint {
+    border-width: 1.5px;
+  }
+
+  .glass::before,
+  .glass-fab::before,
+  .glass-btn::before {
+    opacity: 0.9;
+  }
+
+  :focus-visible {
+    outline-width: 3px;
+  }
+
+  #map-hint {
+    background: rgba(2,6,23,0.94);
+    color: white;
+    border-color: var(--glass-border-strong);
+  }
+}
+
+@media (forced-colors: active) {
+  .glass,
+  .glass-fab,
+  .glass-btn,
+  #map-hint {
+    background: Canvas;
+    border: 1px solid ButtonText;
+    box-shadow: none;
+    color: CanvasText;
+    forced-color-adjust: auto;
+  }
+
+  .glass::before,
+  .glass-fab::before,
+  .glass-btn::before {
+    display: none;
+  }
+
+  .glass-contained,
+  .glass-contained-positive,
+  .glass-contained-danger {
+    background: ButtonFace;
+    border-color: ButtonText;
+    color: ButtonText;
+  }
+
+  :focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

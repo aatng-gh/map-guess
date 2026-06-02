@@ -1,5 +1,7 @@
 # Review artifacts and screenshots (local only)
-REVIEW.md
+node_modules/
+dist/
 screenshots/
+
 .DS_Store
 *.log
