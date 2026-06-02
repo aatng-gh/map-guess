@@ -7,14 +7,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.BASE_PATH ?? '/',
   plugins: [svelte()],
   resolve: {
     alias: {
-      $lib: path.resolve(__dirname, './src/lib')
-    }
+      $lib: path.resolve(__dirname, './src/lib'),
+    },
   },
   build: {
     // Keep assets reasonable for the large embedded SVG map
-    chunkSizeWarningLimit: 600
-  }
+    chunkSizeWarningLimit: 600,
+  },
 });
