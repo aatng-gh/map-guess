@@ -523,7 +523,8 @@
     <path id="zm" d="M459.78,571.656l2.739,3.802l4.244,0.261l1.504,0.829l4.443,0.053l3.829-5.367l10.702-4.789l0.934-4.219l-1.244-6.043l-5.584-3.181l-3.727,0.26l-1.857,4.114l0.053,1.876l4.391,2.136l0.26,4.642l-3.775,0.208l-0.935-1.564l-10.495-4.479l-0.311,3.44l-4.962,0.155L459.78,571.656L459.78,571.656z"/>
     <path id="zw" d="M468.52,578.226l7.755,8.757l5.946,1.513l3.984-6.248l-0.312-8.281l-6.465-3.337l-2.431,1.098l-3.62,5.524l-5.014-0.053L468.52,578.226L468.52,578.226z"/>
 </g>
-<g id="labels"></g></svg>
+<g id="labels"></g>
+</svg>
 
       <!-- Floating zoom hint (fades after first interaction) -->
       <div id="map-hint"
@@ -963,11 +964,28 @@
       const countryEl = svgEl.getElementById(cid);
       if (!countryEl) return;
 
-      // Choose a good element for getBBox: prefer a path inside group
+      // Choose a good element for getBBox: for groups, pick the *largest* path
+      // (by bbox area). This ensures the name label appears over the main
+      // landmass instead of a tiny island or peripheral feature.
+      // (Fixes "name not stick with countries" for complex <g> countries.)
       let bboxSource = countryEl;
       if (countryEl.tagName.toLowerCase() === 'g') {
-        const firstPath = countryEl.querySelector('path');
-        if (firstPath) bboxSource = firstPath;
+        const paths = Array.from(countryEl.querySelectorAll('path'));
+        if (paths.length > 0) {
+          let best = paths[0];
+          let bestArea = -1;
+          for (const p of paths) {
+            try {
+              const b = p.getBBox();
+              const area = (b.width || 0) * (b.height || 0);
+              if (area > bestArea) {
+                bestArea = area;
+                best = p;
+              }
+            } catch (e) {}
+          }
+          bboxSource = best;
+        }
       }
 
       /** @type {DOMRect | {x:number,y:number,width:number,height:number}} */
@@ -1329,6 +1347,17 @@
         return;
       }
 
+      // Move the labels group *inside* the #map-content group (if it isn't already).
+      // This ensures dynamically added <text> labels (and their bg rects) receive
+      // the same pan/zoom transform as the countries, so names "stick" to their
+      // countries during drag, pinch, wheel zoom, locate, etc.
+      // (Previously labels were siblings outside the transformed group → they
+      // would stay fixed while countries moved underneath.)
+      const mapContent = svgEl.querySelector('#map-content');
+      if (mapContent && labelsEl.parentNode !== mapContent) {
+        mapContent.appendChild(labelsEl);
+      }
+
       // Populate state
       state.svg = svgEl;
       state.labelsG = labelsEl;
@@ -1381,6 +1410,13 @@
       if (!content) {
         console.warn('[MapGuess] #map-content group not found for pan/zoom');
         return;
+      }
+
+      // Defensive: ensure labels live inside the transform group (in case the
+      // move in initMap was skipped or DOM was mutated).
+      const labels = svgEl.querySelector('#labels');
+      if (labels && labels.parentNode !== content) {
+        content.appendChild(labels);
       }
 
       let scale = 1;
