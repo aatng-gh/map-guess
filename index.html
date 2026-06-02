@@ -26,8 +26,18 @@
     }
     /* Large touch friendly buttons */
     .touch-btn {
-      min-height: 48px;
-      min-width: 120px;
+      min-height: 44px;
+    }
+    /* Full page map viewport */
+    #map-viewport {
+      cursor: grab;
+    }
+    #map-viewport:active {
+      cursor: grabbing;
+    }
+    /* Zoom buttons */
+    #zoom-in, #zoom-out, #zoom-fit {
+      user-select: none;
     }
     /* Map container sizing: iPad-first responsive */
     .map-container {
@@ -38,49 +48,47 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="mx-auto max-w-[960px] px-4 py-4 sm:py-6">
-    <!-- Header -->
-    <header class="flex items-center justify-between mb-4">
-      <div>
-        <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight">Map Guess</h1>
-        <p class="text-sm text-slate-500 mt-0.5">Tap countries to reveal names</p>
-      </div>
-      <button
-        id="reset-btn"
-        class="touch-btn px-6 py-3 bg-slate-800 hover:bg-slate-900 active:bg-black text-white text-lg font-semibold rounded-2xl shadow-sm active:scale-[0.985] transition flex items-center gap-2"
-        aria-label="Reset map to all grey">
-        <span>Reset</span>
-      </button>
-    </header>
+<body class="bg-slate-100 text-slate-900 h-screen flex flex-col overflow-hidden">
+  <!-- Full-page map experience -->
 
-    <!-- Progress -->
-    <div class="flex items-center gap-3 mb-3">
-      <div class="text-xl sm:text-2xl font-medium text-slate-700">
-        Revealed <span id="count" class="font-semibold tabular-nums text-slate-900">0</span>
-        / <span id="total" class="tabular-nums text-slate-500">180</span>
+    <!-- Slim top bar (always visible, minimal chrome) -->
+    <div class="h-12 sm:h-14 shrink-0 flex items-center justify-between px-3 sm:px-4 bg-white/95 backdrop-blur-md border-b border-slate-200 z-50">
+      <div class="flex items-center gap-3">
+        <span class="font-semibold text-2xl tracking-tighter">Map Guess</span>
+        <div class="flex items-center gap-1 text-sm bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-xl font-medium tabular-nums">
+          <span class="opacity-70 mr-0.5">Revealed</span><span id="count">0</span>/<span id="total">180</span>
+        </div>
       </div>
 
-      <!-- Optional nice-to-have: reveal random -->
-      <button
-        id="random-btn"
-        class="ml-auto touch-btn px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-base font-semibold rounded-2xl shadow-sm active:scale-[0.985] transition">
-        Reveal random
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Zoom cluster -->
+        <div class="flex items-center rounded-2xl border border-slate-300 bg-white shadow-sm overflow-hidden">
+          <button id="zoom-out" class="px-3 py-1 text-2xl leading-none font-light active:bg-slate-100" aria-label="Zoom out">−</button>
+          <button id="zoom-fit" class="px-3 py-1 text-[10px] font-semibold tracking-widest border-l border-r border-slate-200 active:bg-slate-100" aria-label="Fit to view">FIT</button>
+          <button id="zoom-in" class="px-3 py-1 text-2xl leading-none font-light active:bg-slate-100" aria-label="Zoom in">+</button>
+        </div>
+
+        <!-- Main actions -->
+        <button id="random-btn"
+          class="touch-btn px-4 py-1.5 bg-emerald-600 active:bg-emerald-700 text-white text-sm font-semibold rounded-2xl shadow-sm transition">
+          Random
+        </button>
+        <button id="reset-btn"
+          class="touch-btn px-4 py-1.5 bg-slate-800 active:bg-black text-white text-sm font-semibold rounded-2xl shadow-sm transition">
+          Reset
+        </button>
+      </div>
     </div>
 
-    <!-- Map viewport: rounded card, sea bg, good vh for iPad -->
-    <div class="map-container rounded-3xl shadow-xl overflow-hidden border border-slate-200 bg-[#a5d8ff] p-2 sm:p-3 mb-4"
-         style="aspect-ratio: 784 / 459; max-height: 72vh;">
-      <svg version="1.1"
+    <!-- Full-bleed map viewport -->
+    <div id="map-viewport"
+         class="flex-1 relative overflow-hidden bg-[#a5d8ff] touch-none"
+         style="min-height: 0;"> <!-- flex child -->
+      <svg id="world-map" version="1.1"
      xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
-     x="0px"
-     y="0px"
-     width="784.077px"
-     height="458.627px"
      viewBox="30.767 241.591 784.077 458.627"
-     id="world-map">
+     class="w-full h-full block select-none">
 <title>Simple World Map</title>
 <desc>
     Author: Al MacDonald
@@ -88,7 +96,7 @@
     License: CC BY-SA 3.0
     ID: ISO 3166-1 or "_[a-zA-Z]" if an ISO code is not available
 </desc>
-<g>
+<g id="map-content">
     <path id="_somaliland" d="M512.674,502.797l3.526,2.403l1.046-0.052l8.757-3.008l0.994,3.206l-0.701,2.706l-1.893,1.503l-4.729-0.302l-6.769-4.158L512.674,502.797L512.674,502.797z"/>
     <path id="ae" d="M528.466,468.135l0.753,3.008l8.522,0.752l0.596-6.172l1.644-0.897l0.448-2.257l-2.688,0.753l-2.99,4.521L528.466,468.135L528.466,468.135z"/>
     <path id="af" d="M545.85,435.383l1.374,10.771l3.423,0.752l0.32,1.937l-2.455,2.049l4.573,3.691l8.885-3.198l0.709-3.786l5.593-3.491l2.145-8.091l1.599-1.722l-1.659-2.887l5.412-3.347l-0.691-0.968l-2.498,0.155l-0.226,2.299l-3.354-0.033l-0.062-3.068l-1.079-1.288l-1.815,1.649l0.052,1.515l-2.739,1.036l-5.059-0.319l-6.568,6.881L545.85,435.383L545.85,435.383z"/>
@@ -480,21 +488,24 @@
 </g>
 <g id="labels"></g>
 </svg>
+
+      <!-- Floating zoom hint (fades after first interaction) -->
+      <div id="map-hint"
+           class="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-3 py-1 rounded-full bg-black/60 text-white/90 backdrop-blur tracking-wide">
+        Drag to pan • Pinch or wheel to zoom • Tap to reveal
+      </div>
     </div>
 
-    <!-- Last revealed banner -->
-    <div
-      id="banner"
-      class="min-h-[64px] flex items-center justify-center px-6 py-4 bg-white rounded-3xl shadow text-2xl sm:text-3xl font-semibold text-slate-800 text-center border border-slate-100"
-      role="status"
-      aria-live="polite">
+    <!-- Floating bottom status banner (overlay on map) -->
+    <div id="banner"
+         class="absolute bottom-2 left-2 right-2 sm:left-auto sm:right-auto sm:bottom-3 sm:w-[min(420px,92%)] z-40
+                min-h-[52px] flex items-center justify-center px-5 py-3 bg-white/95 backdrop-blur-md rounded-3xl shadow-lg text-xl sm:text-2xl font-semibold text-slate-800 text-center border border-slate-200"
+         role="status"
+         aria-live="polite">
       Tap any country to reveal its name
     </div>
 
-    <div class="mt-3 text-center text-xs text-slate-400">
-      180 countries &amp; territories • Works offline • Touch friendly
-    </div>
-  </div>
+  </div> <!-- / full flex col -->
 
   <script>
     // Tailwind CDN script (no custom theme needed beyond defaults)
@@ -1012,6 +1023,13 @@
     function wireInteractions(svgEl) {
       // Delegated click on SVG for country reveals
       svgEl.addEventListener('click', (e) => {
+        // During or immediately after a pan/drag gesture we suppress reveals
+        if (svgEl.dataset.dragging === 'true') {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return;
+        }
+
         // Find nearest ancestor (or self) that carries a country id
         const el = /** @type {Element} */ (e.target).closest('[id]');
         if (!el) return;
@@ -1099,12 +1117,269 @@
       svgEl.setAttribute('role', 'img');
       svgEl.setAttribute('aria-label', 'World map - tap countries to reveal names');
 
+      // Setup pan, zoom, drag, pinch, wheel for full-page map
+      setupPanZoom(svgEl);
+
       // Optional: log count for dev (no console noise in prod use)
       // console.log('Map Guess ready with', state.total, 'countries');
     }
 
+    /**
+     * Pan + Zoom + multi-touch gesture support for the SVG map.
+     * - Mouse: wheel to zoom, drag to pan
+     * - Touch: one finger pan, two finger pinch-to-zoom + pan
+     * - Buttons + keyboard (+ / - / f) also supported
+     * - Double-click / double-tap zooms in at point
+     * Integrates cleanly with existing country tap-to-reveal (small drag threshold).
+     *
+     * @param {SVGSVGElement} svgEl
+     */
+    function setupPanZoom(svgEl) {
+      /** @type {SVGGElement | null} */
+      const content = svgEl.querySelector('#map-content');
+      if (!content) {
+        console.warn('[MapGuess] #map-content group not found for pan/zoom');
+        return;
+      }
+
+      let scale = 1;
+      let tx = 0;
+      let ty = 0;
+
+      const MIN_SCALE = 0.35;
+      const MAX_SCALE = 22;
+
+      /** Apply current pan/zoom to the content group */
+      function applyTransform() {
+        content.setAttribute('transform', `translate(${tx} ${ty}) scale(${scale})`);
+      }
+
+      /**
+       * Convert client (screen) coordinates to current SVG user coordinates.
+       * @param {{clientX:number, clientY:number}} evtLike
+       */
+      function getSVGPoint(evtLike) {
+        const pt = svgEl.createSVGPoint();
+        pt.x = evtLike.clientX;
+        pt.y = evtLike.clientY;
+        const ctm = svgEl.getScreenCTM();
+        if (!ctm) return { x: 0, y: 0 };
+        return pt.matrixTransform(ctm.inverse());
+      }
+
+      /**
+       * Zoom by a factor around an optional SVG point.
+       * @param {number} factor
+       * @param {{x:number,y:number}=} around
+       */
+      function zoomBy(factor, around) {
+        const oldScale = scale;
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor));
+        if (!around) {
+          const r = svgEl.getBoundingClientRect();
+          around = getSVGPoint({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+        }
+        tx = around.x - (around.x - tx) * (newScale / oldScale);
+        ty = around.y - (around.y - ty) * (newScale / oldScale);
+        scale = newScale;
+        applyTransform();
+      }
+
+      // --- Multi-pointer tracking for unified mouse + touch gestures ---
+      /** @type {Map<number, {x:number, y:number}>} */
+      const activePointers = new Map();
+      let dragStart = null;
+      let hasDragged = false;
+      const DRAG_THRESHOLD = 5; // px before we consider it a pan instead of tap
+
+      let prevPinch = null; // {dist, cx, cy}
+
+      function onPointerDown(e) {
+        svgEl.setPointerCapture(e.pointerId);
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.size === 1) {
+          dragStart = { tx, ty, x: e.clientX, y: e.clientY };
+          hasDragged = false;
+        }
+        // Clear pinch state when pointer count changes
+        prevPinch = null;
+      }
+
+      function onPointerMove(e) {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (activePointers.size === 1 && dragStart) {
+          const dx = e.clientX - dragStart.x;
+          const dy = e.clientY - dragStart.y;
+
+          if (!hasDragged && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+            hasDragged = true;
+            // mark that a drag is happening so reveal clicks can be suppressed
+            svgEl.dataset.dragging = 'true';
+          }
+
+          if (hasDragged) {
+            // Pan: screen delta divided by current scale (because content is scaled)
+            tx = dragStart.tx + dx / scale;
+            ty = dragStart.ty + dy / scale;
+            applyTransform();
+          }
+        } else if (activePointers.size === 2) {
+          // Pinch-to-zoom + pan
+          const pts = Array.from(activePointers.values());
+          const [p0, p1] = pts;
+          const dist = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+          const cx = (p0.x + p1.x) / 2;
+          const cy = (p0.y + p1.y) / 2;
+
+          if (!prevPinch) {
+            prevPinch = { dist, cx, cy };
+            return;
+          }
+
+          const ratio = dist / prevPinch.dist;
+          if (ratio > 0.0001) {
+            const centerSVG = getSVGPoint({ clientX: cx, clientY: cy });
+            const oldS = scale;
+            scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * ratio));
+
+            tx = centerSVG.x - (centerSVG.x - tx) * (scale / oldS);
+            ty = centerSVG.y - (centerSVG.y - ty) * (scale / oldS);
+            applyTransform();
+          }
+
+          // Also allow some pan while pinching (center moved)
+          const dcx = cx - prevPinch.cx;
+          const dcy = cy - prevPinch.cy;
+          if (Math.abs(dcx) > 0.5 || Math.abs(dcy) > 0.5) {
+            tx += dcx / scale;
+            ty += dcy / scale;
+            applyTransform();
+          }
+
+          prevPinch = { dist, cx, cy };
+        }
+      }
+
+      function onPointerUp(e) {
+        activePointers.delete(e.pointerId);
+        prevPinch = null;
+
+        if (activePointers.size === 0) {
+          const wasDrag = hasDragged;
+          if (dragStart) {
+            dragStart = null;
+          }
+          hasDragged = false;
+          delete svgEl.dataset.dragging;
+
+          // If it was a very small movement, the native click event will still fire
+          // and the existing reveal wiring will handle country taps. Perfect.
+          if (wasDrag) {
+            // small cooldown so any lingering click is ignored by reveal logic
+            setTimeout(() => { delete svgEl.dataset.dragging; }, 120);
+          }
+        } else if (activePointers.size === 1) {
+          // transitioned from 2-finger back to 1-finger
+          const [rem] = activePointers.values();
+          dragStart = { tx, ty, x: rem.x, y: rem.y };
+          hasDragged = false;
+        }
+      }
+
+      // Attach gesture listeners (use the svg for precise target, viewport also works)
+      svgEl.addEventListener('pointerdown', onPointerDown, { passive: true });
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      window.addEventListener('pointerup', onPointerUp, { passive: true });
+      window.addEventListener('pointercancel', onPointerUp, { passive: true });
+
+      // Wheel / trackpad zoom (prevent page scroll while over map)
+      svgEl.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const pt = getSVGPoint(e);
+        const factor = e.deltaY < 0 ? 1.18 : 0.86;
+        zoomBy(factor, pt);
+      }, { passive: false });
+
+      // Double tap / double click = zoom in at location
+      svgEl.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        const pt = getSVGPoint(e);
+        zoomBy(1.55, pt);
+      });
+
+      // --- External controls (floating buttons in top bar) ---
+      const btnIn = document.getElementById('zoom-in');
+      const btnOut = document.getElementById('zoom-out');
+      const btnFit = document.getElementById('zoom-fit');
+
+      if (btnIn) btnIn.addEventListener('click', () => {
+        zoomBy(1.28);
+      });
+      if (btnOut) btnOut.addEventListener('click', () => {
+        zoomBy(0.78);
+      });
+      if (btnFit) btnFit.addEventListener('click', () => {
+        scale = 1; tx = 0; ty = 0; applyTransform();
+      });
+
+      // Keyboard support (global, handy on desktop/iPad with keyboard)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault(); zoomBy(1.22);
+        } else if (e.key === '-' || e.key === '_') {
+          e.preventDefault(); zoomBy(0.82);
+        } else if (e.key.toLowerCase() === 'f') {
+          e.preventDefault(); scale = 1; tx = 0; ty = 0; applyTransform();
+        }
+      });
+
+      // Initial transform (identity shows the original viewBox nicely)
+      applyTransform();
+
+      // Small helper in case we want to reset view from elsewhere
+      svgEl._resetView = () => { scale = 1; tx = 0; ty = 0; applyTransform(); };
+
+      // Fade and remove the gesture hint on first interaction (keeps full-page clean)
+      const hint = document.getElementById('map-hint');
+      const hideHint = () => {
+        if (!hint || !hint.parentNode) return;
+        hint.style.transition = 'opacity 220ms ease';
+        hint.style.opacity = '0';
+        setTimeout(() => { if (hint.parentNode) hint.parentNode.removeChild(hint); }, 260);
+        svgEl.removeEventListener('pointerdown', hideHint);
+        svgEl.removeEventListener('wheel', hideHint);
+      };
+      svgEl.addEventListener('pointerdown', hideHint, { once: true });
+      svgEl.addEventListener('wheel', hideHint, { once: true });
+
+      // Also allow the old "random" or other code to occasionally fit if wanted (not required)
+    }
+
+    // Hook: after existing reveal wiring, also prevent reveal clicks during/after drags
+    // We patch the click handler area lightly by checking dataset.dragging
+    function wireRevealGuard() {
+      // The original wireInteractions already attached listeners to paths.
+      // We wrap at the document or svg level to filter synthetic clicks after drag.
+      const svg = document.getElementById('world-map');
+      if (!svg) return;
+
+      svg.addEventListener('click', (e) => {
+        if (svg.dataset.dragging === 'true') {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true); // capture so we can kill it before other listeners
+    }
+
     // Boot: wait for full load so getBBox and layout are reliable on all browsers
-    window.addEventListener('load', initMap);
+    window.addEventListener('load', () => {
+      initMap();
+      // Install guard after init (so the reveal listeners are already there)
+      setTimeout(wireRevealGuard, 30);
+    });
   </script>
 </body>
 </html>
