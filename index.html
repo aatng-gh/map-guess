@@ -1497,7 +1497,12 @@
         activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (activePointers.size === 1) {
-          dragStart = { tx, ty, x: e.clientX, y: e.clientY };
+          const startWorld = getSVGPoint(e);
+          dragStart = {
+            tx, ty,
+            worldX: startWorld.x, worldY: startWorld.y,
+            clientX: e.clientX, clientY: e.clientY  // only for threshold detection
+          };
           hasDragged = false;
           // do not add 'is-dragging-map' yet; only on actual move past threshold or pinch
           // this way pure taps don't force grab cursor on press
@@ -1514,20 +1519,35 @@
         activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
         if (activePointers.size === 1 && dragStart) {
-          const dx = e.clientX - dragStart.x;
-          const dy = e.clientY - dragStart.y;
+          const dx = e.clientX - dragStart.clientX;
+          const dy = e.clientY - dragStart.clientY;
 
           if (!hasDragged && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
             hasDragged = true;
             // mark that a drag is happening so reveal clicks can be suppressed
             svgEl.dataset.dragging = 'true';
             if (dragCursorTarget) dragCursorTarget.classList.add('is-dragging-map');
+
+            // Re-anchor at the moment we engage real dragging (past threshold).
+            // This way tiny jitters never move the map (preserves tap detection),
+            // and when drag starts there is no visible "catch up" jump.
+            const cur = getSVGPoint(e);
+            dragStart = {
+              tx, ty,
+              worldX: cur.x, worldY: cur.y,
+              clientX: e.clientX, clientY: e.clientY
+            };
           }
 
           if (hasDragged) {
-            // Pan: screen delta divided by current scale (because content is scaled)
-            tx = dragStart.tx + dx / scale;
-            ty = dragStart.ty + dy / scale;
+            // Anchor-based pan: keep the exact map point that was under the pointer
+            // at the start of the drag (or at engage time) "glued" to the moving pointer.
+            // Re-query the current world coordinate under the pointer each move using
+            // the SVG CTM for precision. Adjust tx/ty (pre-scale map units) to keep
+            // the grabbed point locked under the cursor. Eliminates drift/slip.
+            const curWorld = getSVGPoint(e);
+            tx = dragStart.tx + (curWorld.x - dragStart.worldX);
+            ty = dragStart.ty + (curWorld.y - dragStart.worldY);
             applyTransform();
           }
         } else if (activePointers.size === 2) {
@@ -1610,7 +1630,12 @@
         } else if (activePointers.size === 1) {
           // transitioned from 2-finger back to 1-finger
           const [rem] = activePointers.values();
-          dragStart = { tx, ty, x: rem.x, y: rem.y };
+          const w = getSVGPoint({ clientX: rem.x, clientY: rem.y });
+          dragStart = {
+            tx, ty,
+            worldX: w.x, worldY: w.y,
+            clientX: rem.x, clientY: rem.y
+          };
           hasDragged = false;
           if (dragCursorTarget) dragCursorTarget.classList.remove('is-dragging-map');
         }
