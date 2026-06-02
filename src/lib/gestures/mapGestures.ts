@@ -1,5 +1,7 @@
 export type View = { tx: number; ty: number; scale: number };
 export type Point = { x: number; y: number };
+export type Rect = { x: number; y: number; width: number; height: number };
+export type ViewportSize = { width: number; height: number };
 
 export const MIN_SCALE = 0.35;
 export const MAX_SCALE = 22;
@@ -154,4 +156,60 @@ export function resetMicroPan(view: View, start: DragStart): View {
     tx: start.tx,
     ty: start.ty,
   };
+}
+
+export function fitViewToViewport(
+  bounds: Rect,
+  viewBox: Rect,
+  viewport: ViewportSize,
+  paddingPx = 24,
+  config: GestureConfig = {},
+): View {
+  const usableViewport = {
+    width: Math.max(1, viewport.width),
+    height: Math.max(1, viewport.height),
+  };
+
+  const paddingX = Math.min(
+    viewBox.width * 0.12,
+    (paddingPx / usableViewport.width) * viewBox.width,
+  );
+  const paddingY = Math.min(
+    viewBox.height * 0.12,
+    (paddingPx / usableViewport.height) * viewBox.height,
+  );
+
+  const targetWidth = Math.max(1, viewBox.width - paddingX * 2);
+  const targetHeight = Math.max(1, viewBox.height - paddingY * 2);
+  const scale = clampScale(
+    Math.min(targetWidth / bounds.width, targetHeight / bounds.height),
+    config,
+  );
+
+  const targetCenter = {
+    x: viewBox.x + viewBox.width / 2,
+    y: viewBox.y + viewBox.height / 2,
+  };
+  const boundsCenter = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y + bounds.height / 2,
+  };
+
+  return {
+    tx: targetCenter.x - boundsCenter.x * scale,
+    ty: targetCenter.y - boundsCenter.y * scale,
+    scale,
+  };
+}
+
+export function shouldIgnoreMapShortcut(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+
+  if (target.closest('[contenteditable="true"]')) return true;
+
+  const interactiveTarget = target.closest(
+    'input, textarea, select, button, [role="textbox"], [role="dialog"], dialog',
+  );
+
+  return Boolean(interactiveTarget);
 }

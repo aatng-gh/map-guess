@@ -25,9 +25,12 @@ import {
   hasCrossedDragThreshold,
   panToPointer,
   resetMicroPan,
+  fitViewToViewport,
+  shouldIgnoreMapShortcut,
   toDragStart,
   zoomAt,
   type Point,
+  type Rect,
   type View,
 } from '$lib/gestures/mapGestures';
 
@@ -59,6 +62,20 @@ function applyTransform(
   content.setAttribute('transform', `translate(${tx} ${ty}) scale(${scale})`);
 }
 
+function toRect(rect: SVGRect): Rect {
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: Math.max(1, rect.width),
+    height: Math.max(1, rect.height),
+  };
+}
+
+function getViewBoxRect(svg: SVGSVGElement): Rect {
+  const viewBox = svg.viewBox.baseVal;
+  return toRect(viewBox);
+}
+
 export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   node,
   params = {},
@@ -68,9 +85,11 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     console.warn('[panzoom] #map-content not found');
     return {};
   }
+  const mapContent = content;
 
   const gesture = createGestureState();
   let currentView: View = params.view || { tx: 0, ty: 0, scale: 1 };
+  let initialFitFrame = 0;
 
   function syncView() {
     if (params.view) {
@@ -82,13 +101,52 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   }
 
   function updateTransform() {
-    applyTransform(content!, currentView.tx, currentView.ty, currentView.scale);
+    applyTransform(mapContent, currentView.tx, currentView.ty, currentView.scale);
     syncView();
   }
 
   function setCurrentView(nextView: View) {
     currentView = nextView;
     updateTransform();
+  }
+
+  function getViewportSize() {
+    const rect = node.getBoundingClientRect();
+    return {
+      width: rect.width || node.clientWidth || 1,
+      height: rect.height || node.clientHeight || 1,
+    };
+  }
+
+  function getContentBounds(): Rect {
+    const geometry = node.querySelector<SVGGElement>('#country-layer');
+    try {
+      return toRect((geometry ?? mapContent).getBBox());
+    } catch {
+      return getViewBoxRect(node);
+    }
+  }
+
+  function getViewportCenter() {
+    const viewBox = getViewBoxRect(node);
+    return {
+      x: viewBox.x + viewBox.width / 2,
+      y: viewBox.y + viewBox.height / 2,
+    };
+  }
+
+  function fitToScreen() {
+    setCurrentView(
+      fitViewToViewport(
+        getContentBounds(),
+        getViewBoxRect(node),
+        getViewportSize(),
+      ),
+    );
+  }
+
+  function zoomFromCenter(factor: number) {
+    setCurrentView(zoomAt(currentView, getViewportCenter(), factor));
   }
 
   function setDragging(isDragging: boolean) {
@@ -240,8 +298,38 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   };
   node.addEventListener('dblclick', onDbl);
 
-  // Initial
   updateTransform();
+  initialFitFrame = window.requestAnimationFrame(fitToScreen);
+
+  const onFitRequest = () => {
+    fitToScreen();
+  };
+
+  const onZoomRequest = (e: Event) => {
+    const factor = (e as CustomEvent<{ factor?: number }>).detail?.factor;
+    if (typeof factor === 'number' && Number.isFinite(factor)) {
+      zoomFromCenter(factor);
+    }
+  };
+
+  const onKeydown = (e: KeyboardEvent) => {
+    if (shouldIgnoreMapShortcut(e.target)) return;
+
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      zoomFromCenter(1.28);
+    } else if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      zoomFromCenter(0.78);
+    } else if (e.key.toLowerCase() === 'f') {
+      e.preventDefault();
+      fitToScreen();
+    }
+  };
+
+  window.addEventListener('map:fit-view', onFitRequest);
+  window.addEventListener('map:zoom-view', onZoomRequest);
+  window.addEventListener('keydown', onKeydown);
 
   return {
     update(newParams: PanZoomParams | undefined) {
@@ -258,6 +346,10 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       window.removeEventListener('pointercancel', onPointerUp);
       node.removeEventListener('wheel', onWheel);
       node.removeEventListener('dblclick', onDbl);
+      window.removeEventListener('map:fit-view', onFitRequest);
+      window.removeEventListener('map:zoom-view', onZoomRequest);
+      window.removeEventListener('keydown', onKeydown);
+      window.cancelAnimationFrame(initialFitFrame);
       setDragging(false);
     },
   };

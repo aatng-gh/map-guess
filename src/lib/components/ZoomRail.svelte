@@ -1,18 +1,12 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
-  const mapState = getContext<any>('map') || { view: { tx: 0, ty: 0, scale: 1 } };
-
   function zoom(factor: number) {
-    const v = mapState.view;
-    const newScale = Math.max(0.35, Math.min(22, v.scale * factor));
-    // Simple center zoom (no around point yet)
-    v.scale = newScale;
-    mapState.view = { ...v };
+    window.dispatchEvent(
+      new window.CustomEvent('map:zoom-view', { detail: { factor } }),
+    );
   }
 
   function fit() {
-    // Stub: identity + reasonable overview scale (full impl in panzoom action)
-    mapState.view = { tx: 0, ty: 0, scale: 0.92 };
+    window.dispatchEvent(new window.CustomEvent('map:fit-view'));
   }
 </script>
 
