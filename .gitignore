@@ -1,0 +1,5 @@
+# Review artifacts and screenshots (local only)
+REVIEW.md
+screenshots/
+.DS_Store
+*.log
