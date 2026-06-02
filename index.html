@@ -115,48 +115,12 @@
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
-  <!-- Full-page map experience - map is the hero -->
-
-    <!-- Floating glass top bar (absolute for maximum map presence) -->
-    <div class="absolute top-3 left-3 right-3 z-50 flex items-center justify-between pointer-events-none">
-      <div class="glass flex items-center gap-3 px-4 h-11 rounded-3xl shadow-xl pointer-events-auto">
-        <span class="font-semibold text-xl tracking-[-0.02em]">Map Guess</span>
-        
-        <!-- Progress with visual bar - strong hierarchy -->
-        <div class="flex items-center gap-2 pl-3 border-l border-white/20">
-          <div>
-            <div class="text-[10px] font-medium tracking-widest text-teal-300/70">REVEALED</div>
-            <div class="font-semibold tabular-nums text-lg tracking-tighter leading-none">
-              <span id="count">0</span>/<span id="total">181</span>
-            </div>
-          </div>
-          <!-- Simple progress bar -->
-          <div class="w-9 h-1.5 bg-white/20 rounded-full overflow-hidden self-end mb-1">
-            <div id="progress-bar" 
-                 class="h-1.5 bg-teal-400 rounded-full transition-all duration-300"
-                 style="width: 0%"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right side actions in top bar -->
-      <div class="flex items-center gap-2 pointer-events-auto">
-        <button id="random-btn"
-          class="glass touch-btn px-4 h-11 text-sm font-semibold rounded-3xl active:scale-[0.985] transition flex items-center gap-1.5 shadow-xl text-emerald-300 hover:text-emerald-200">
-          <span>Random</span>
-        </button>
-        <button id="reset-btn"
-          class="glass touch-btn px-4 h-11 text-sm font-semibold rounded-3xl active:scale-[0.985] transition shadow-xl text-rose-300 hover:text-rose-200">
-          Reset
-        </button>
-      </div>
-    </div>
+<body class="bg-slate-950 text-slate-100 h-screen overflow-hidden relative">
+  <!-- Full-page map experience - the map is the hero -->
 
     <!-- Full-bleed map viewport -->
     <div id="map-viewport"
-         class="flex-1 relative overflow-hidden touch-none bg-[#0f172a]"
-         style="min-height: 0;">
+         class="absolute inset-0 overflow-hidden touch-none bg-[#0f172a]">
       <svg id="world-map" version="1.1"
      xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -583,21 +547,55 @@
       </div>
     </div>
 
-    <!-- Primary feedback: Bottom reveal card - strong visual weight when active -->
-    <div id="banner"
-         class="absolute bottom-3 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:min-w-[320px] z-50
-                pointer-events-auto
-                min-h-[62px] flex items-center justify-center gap-3 px-6 py-4 
-                glass rounded-3xl shadow-2xl text-2xl sm:text-3xl font-semibold tracking-[-0.015em] text-slate-900 text-center border border-white/60"
-         role="status"
-         aria-live="polite">
-      <div class="flex items-baseline gap-2">
-        <span class="text-xs font-bold tracking-[1px] text-teal-600/80 self-center" style="display:none">REVEALED</span>
-        <span id="banner-name" class="font-semibold">Tap any country to reveal its name</span>
+    <!-- Floating game panel: game name + controls + recent revealed countries
+         Glassmorphism with heavy blur + transparency (UI/UX best practice for map overlays) -->
+    <div id="game-panel"
+         class="absolute top-3 right-3 w-64 sm:w-72 z-50 pointer-events-auto
+                bg-slate-900/75 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl p-4 text-slate-100 text-sm">
+      <!-- Header with name and progress -->
+      <div class="flex items-start justify-between mb-2.5">
+        <div>
+          <div class="font-semibold text-2xl tracking-[-0.03em] leading-none">Map Guess</div>
+          <div class="text-[10px] text-teal-400/70 tracking-[1.5px] mt-0.5">WORLD EXPLORER</div>
+        </div>
+        <div class="text-right leading-none">
+          <div class="text-[10px] text-teal-300/70 tracking-widest">REVEALED</div>
+          <div class="font-semibold tabular-nums text-xl tracking-tighter">
+            <span id="count">0</span>/<span id="total">181</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="h-[3px] bg-white/10 rounded mb-3">
+        <div id="progress-bar" class="h-[3px] bg-teal-400 rounded transition-all duration-300" style="width:0%"></div>
+      </div>
+
+      <!-- Recent revealed countries list -->
+      <div class="mb-3">
+        <div class="flex justify-between items-center text-[10px] uppercase tracking-[1px] text-teal-300/60 px-1 mb-1">
+          <span>Recent reveals</span>
+        </div>
+        <div id="recent-list"
+             class="max-h-[162px] overflow-y-auto space-y-px pr-1 custom-scroll text-[13px]">
+          <!-- JS renders rows here -->
+        </div>
+      </div>
+
+      <!-- Core game controls -->
+      <div class="flex gap-2">
+        <button id="random-btn"
+                class="flex-1 touch-btn px-3 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-semibold rounded-2xl transition shadow">
+          Random
+        </button>
+        <button id="reset-btn"
+                class="flex-1 touch-btn px-3 py-2 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white text-sm font-semibold rounded-2xl transition shadow">
+          Reset
+        </button>
       </div>
     </div>
 
-  </div> <!-- / full flex col -->
+  </div> <!-- viewport -->
 
   <script>
     // Tailwind CDN script (no custom theme needed beyond defaults)
@@ -622,6 +620,7 @@
      * @property {SVGSVGElement | null} svg - Reference to the world map SVG element.
      * @property {SVGGElement | null} labelsG - Reference to the <g id="labels"> layer for injected name texts.
      * @property {Set<CountryId>} countryIds - All discoverable country ids parsed from SVG on init.
+     * @property {Array<{id: CountryId, name: string}>} recent - Last revealed countries (newest first), for the floating panel.
      */
 
     /** @type {CountryNames} */
@@ -887,6 +886,7 @@
       svg: null,
       labelsG: null,
       countryIds: new Set(),
+      recent: [],   // [{id, name}] newest first, for the floating panel
     };
 
     /**
@@ -1072,28 +1072,93 @@
      * @returns {void}
      */
     function setBanner(message, isReveal = false) {
-      const banner = document.getElementById('banner');
-      const prefixEl = banner ? banner.querySelector('.text-teal-600\\/80') : null;
-      const nameEl = document.getElementById('banner-name') || banner;
-      
-      if (banner && nameEl) {
-        nameEl.textContent = message;
-        
-        // Hide the "REVEALED" prefix for the initial instruction state
-        const isInstruction = message.toLowerCase().includes('tap any');
-        if (prefixEl) {
-          prefixEl.style.display = isInstruction ? 'none' : '';
+      // The old bottom banner was consolidated into the floating game panel + recents list.
+      // This function is kept for compatibility with existing calls (instructional text, "all revealed").
+      // We can optionally surface "all revealed" as a special toast or just ignore for now.
+      if (message && message.toLowerCase().includes('all countries')) {
+        // Subtle feedback: flash the panel or just let the recents show everything
+        const panel = document.getElementById('game-panel');
+        if (panel) {
+          panel.style.transition = 'box-shadow 200ms';
+          panel.style.boxShadow = '0 0 0 3px rgba(52, 211, 153, 0.3)';
+          setTimeout(() => { if (panel) panel.style.boxShadow = ''; }, 1200);
         }
-        
-        // Visual hierarchy feedback: stronger presence on actual reveal
-        if (isReveal) {
-          banner.classList.add('active', 'ring-1', 'ring-teal-500/30');
-          setTimeout(() => {
-            banner.classList.remove('active');
-          }, 650);
-        } else {
-          banner.classList.remove('ring-1', 'ring-teal-500/30');
-        }
+      }
+      // No-op for regular messages (the recents list + count provide the hierarchy now)
+    }
+
+    /**
+     * Render the list of recently revealed countries inside the floating panel.
+     * Newest first. Clicking a row will attempt to locate/center the map on that country.
+     */
+    function renderRecentList() {
+      const container = document.getElementById('recent-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const recents = state.recent || [];
+      if (recents.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'px-2 py-1 text-xs text-slate-400 italic';
+        empty.textContent = 'Reveal countries to see them here';
+        container.appendChild(empty);
+        return;
+      }
+
+      recents.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = `group flex items-center gap-2 px-2 py-[3px] rounded-2xl hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer ${index === 0 ? 'text-teal-200' : 'text-slate-200'}`;
+        row.innerHTML = `
+          <span class="inline-block w-1.5 h-1.5 rounded-full ${index === 0 ? 'bg-teal-400' : 'bg-teal-400/60'} flex-shrink-0"></span>
+          <span class="flex-1 truncate">${item.name}</span>
+        `;
+        row.addEventListener('click', () => locateCountry(item.id));
+        container.appendChild(row);
+      });
+    }
+
+    /**
+     * Center the map view on a specific country (nice UX for the recents list).
+     * Uses the pan/zoom api when available.
+     */
+    function locateCountry(cid) {
+      if (!state.svg) return;
+      const content = state.svg.querySelector('#map-content');
+      if (!content) return;
+
+      const el = state.svg.getElementById(cid);
+      if (!el) return;
+
+      let src = el.tagName.toLowerCase() === 'g' ? (el.querySelector('path') || el) : el;
+      let bbox;
+      try {
+        bbox = src.getBBox();
+      } catch (e) {
+        return;
+      }
+
+      const cx = (bbox.x || 0) + (bbox.width || 0) / 2;
+      const cy = (bbox.y || 0) + (bbox.height || 0) / 2;
+
+      const vw = state.svg.clientWidth || 800;
+      const vh = state.svg.clientHeight || 500;
+
+      // Target a comfortable zoom level
+      let s = 1;
+      if (state.svg._getView) {
+        const v = state.svg._getView();
+        s = Math.max(v.scale || 1, 2.6);
+      } else {
+        s = 2.8;
+      }
+
+      const newTx = (vw / 2) - cx * s;
+      const newTy = (vh / 2) - cy * s;
+
+      if (state.svg._setView) {
+        state.svg._setView(newTx, newTy, s);
+      } else {
+        content.setAttribute('transform', `translate(${newTx} ${newTy}) scale(${s})`);
       }
     }
 
@@ -1115,6 +1180,13 @@
       }
 
       state.revealed.add(cid);
+
+      // Maintain recent list for the floating panel (newest first, deduped)
+      if (!state.recent) state.recent = [];
+      state.recent = state.recent.filter(r => r.id !== cid);
+      state.recent.unshift({ id: cid, name });
+      if (state.recent.length > 8) state.recent.length = 8;
+      renderRecentList();
 
       // Color all relevant paths for this country (handles g + paths)
       styleCountryRevealed(state.svg, cid);
@@ -1148,6 +1220,8 @@
 
       // Reset state
       state.revealed.clear();
+      state.recent = [];
+      renderRecentList();
 
       // UI
       updateCounter(0, state.total);
@@ -1273,6 +1347,7 @@
       // Set initial UI
       updateCounter(0, state.total);
       setBanner('Tap any country to reveal its name');
+      renderRecentList();
 
       // Wire taps + buttons
       wireInteractions(svgEl);
@@ -1539,6 +1614,13 @@
       });
 
       // Also allow the old "random" or other code to occasionally fit if wanted (not required)
+
+      // Expose for locateCountry (used by recent list clicks) and other tools
+      svgEl._getView = () => ({ tx, ty, scale });
+      svgEl._setView = (newTx, newTy, newScale) => {
+        tx = newTx; ty = newTy; scale = newScale;
+        applyTransform();
+      };
     }
 
     // Hook: after existing reveal wiring, also prevent reveal clicks during/after drags
