@@ -8,6 +8,12 @@ export interface CountryData {
   paths: { d: string }[];
 }
 
+export interface CountryLabelAnchor {
+  x: number;
+  y: number;
+  area: number;
+}
+
 export const COUNTRIES: CountryData[] = [
   {
     "id": "_somaliland",
@@ -2028,6 +2034,162 @@ export const COUNTRIES: CountryData[] = [
 
 export const COUNTRY_NAMES: Record<CountryId, string> = Object.fromEntries(
   COUNTRIES.map(c => [c.id, c.name])
+);
+
+interface PathBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+const PATH_TOKEN_RE = /[a-zA-Z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g;
+const PARAM_COUNTS: Record<string, number> = {
+  a: 7,
+  c: 6,
+  h: 1,
+  l: 2,
+  m: 2,
+  q: 4,
+  s: 4,
+  t: 2,
+  v: 1,
+};
+
+function emptyBounds(): PathBounds {
+  return {
+    minX: Number.POSITIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+    maxX: Number.NEGATIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY,
+  };
+}
+
+function includePoint(bounds: PathBounds, x: number, y: number): void {
+  bounds.minX = Math.min(bounds.minX, x);
+  bounds.minY = Math.min(bounds.minY, y);
+  bounds.maxX = Math.max(bounds.maxX, x);
+  bounds.maxY = Math.max(bounds.maxY, y);
+}
+
+function pointFromPair(command: string, current: { x: number; y: number }, x: number, y: number) {
+  return command === command.toLowerCase()
+    ? { x: current.x + x, y: current.y + y }
+    : { x, y };
+}
+
+function pathBounds(d: string): PathBounds {
+  const tokens = d.match(PATH_TOKEN_RE) ?? [];
+  const bounds = emptyBounds();
+  const current = { x: 0, y: 0 };
+  const subpathStart = { x: 0, y: 0 };
+  let command = '';
+  let index = 0;
+
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (/^[a-zA-Z]$/.test(token)) {
+      command = token;
+      index += 1;
+    }
+
+    const lower = command.toLowerCase();
+    if (lower === 'z') {
+      current.x = subpathStart.x;
+      current.y = subpathStart.y;
+      command = '';
+      continue;
+    }
+
+    const count = PARAM_COUNTS[lower];
+    if (!count || index + count > tokens.length) {
+      break;
+    }
+
+    const values = tokens.slice(index, index + count).map(Number);
+    index += count;
+
+    switch (lower) {
+      case 'm': {
+        const point = pointFromPair(command, current, values[0], values[1]);
+        current.x = point.x;
+        current.y = point.y;
+        subpathStart.x = point.x;
+        subpathStart.y = point.y;
+        includePoint(bounds, current.x, current.y);
+        command = command === 'm' ? 'l' : 'L';
+        break;
+      }
+      case 'l':
+      case 't': {
+        const point = pointFromPair(command, current, values[0], values[1]);
+        current.x = point.x;
+        current.y = point.y;
+        includePoint(bounds, current.x, current.y);
+        break;
+      }
+      case 'h': {
+        current.x = command === 'h' ? current.x + values[0] : values[0];
+        includePoint(bounds, current.x, current.y);
+        break;
+      }
+      case 'v': {
+        current.y = command === 'v' ? current.y + values[0] : values[0];
+        includePoint(bounds, current.x, current.y);
+        break;
+      }
+      case 'c':
+      case 's':
+      case 'q': {
+        for (let i = 0; i < values.length; i += 2) {
+          const point = pointFromPair(command, current, values[i], values[i + 1]);
+          includePoint(bounds, point.x, point.y);
+          if (i === values.length - 2) {
+            current.x = point.x;
+            current.y = point.y;
+          }
+        }
+        break;
+      }
+      case 'a': {
+        const point = pointFromPair(command, current, values[5], values[6]);
+        current.x = point.x;
+        current.y = point.y;
+        includePoint(bounds, current.x, current.y);
+        break;
+      }
+    }
+  }
+
+  return bounds;
+}
+
+function boundsArea(bounds: PathBounds): number {
+  return Math.max(0, bounds.maxX - bounds.minX) * Math.max(0, bounds.maxY - bounds.minY);
+}
+
+function labelAnchor(country: CountryData): CountryLabelAnchor {
+  let largest = emptyBounds();
+  let largestArea = 0;
+
+  for (const path of country.paths) {
+    const bounds = pathBounds(path.d);
+    const area = boundsArea(bounds);
+    if (area > largestArea) {
+      largest = bounds;
+      largestArea = area;
+    }
+  }
+
+  return {
+    x: (largest.minX + largest.maxX) / 2,
+    y: (largest.minY + largest.maxY) / 2,
+    area: largestArea,
+  };
+}
+
+export const COUNTRY_LABEL_ANCHORS: Record<CountryId, CountryLabelAnchor> = Object.fromEntries(
+  COUNTRIES.map(country => [country.id, labelAnchor(country)])
 );
 
 export const ALL_IDS = new Set(COUNTRIES.map(c => c.id));

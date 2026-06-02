@@ -1,20 +1,65 @@
 <script lang="ts">
   // Declarative Svelte map + reworked gestures (panzoom action)
   import { getContext } from 'svelte';
-  import { COUNTRIES } from '$lib/data/countries';
+  import { COUNTRIES, COUNTRY_LABEL_ANCHORS } from '$lib/data/countries';
   import { panzoom } from '$lib/actions/panzoom';
+  import type { MapState } from '$lib/game/mapState.svelte';
   import type { View } from '$lib/gestures/mapGestures';
 
   interface Props {
     view?: View;
   }
 
-  const mapState = getContext<any>('map') || { revealed: new Set(), reveal: () => {} };
+  const mapState = getContext<MapState>('map');
 
   // View bound to the class state (panzoom action will drive it)
   let { view = $bindable({ tx: 0, ty: 0, scale: 1 }) }: Props = $props();
 
   const revealed = $derived(mapState.revealed || new Set());
+  const labelFontSize = $derived(Math.max(1.8, Math.min(10, 11 / view.scale)));
+  const labelStrokeWidth = $derived(
+    Math.max(0.35, Math.min(1.6, 2.2 / view.scale)),
+  );
+  const visibleLabels = $derived.by(() => {
+    const placed: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    }[] = [];
+
+    return COUNTRIES.filter((country) => revealed.has(country.id))
+      .map((country) => ({
+        ...country,
+        label: COUNTRY_LABEL_ANCHORS[country.id],
+      }))
+      .sort((a, b) => b.label.area - a.label.area)
+      .filter((country) => {
+        const width = Math.max(16, country.name.length * labelFontSize * 0.58);
+        const height = labelFontSize * 1.35;
+        const padding = 1.8 / view.scale;
+        const box = {
+          left: country.label.x - width / 2 - padding,
+          right: country.label.x + width / 2 + padding,
+          top: country.label.y - height / 2 - padding,
+          bottom: country.label.y + height / 2 + padding,
+        };
+        const overlaps = placed.some(
+          (other) =>
+            box.left < other.right &&
+            box.right > other.left &&
+            box.top < other.bottom &&
+            box.bottom > other.top,
+        );
+
+        if (overlaps) {
+          return false;
+        }
+
+        placed.push(box);
+        return true;
+      });
+  });
 </script>
 
 <svg
@@ -30,25 +75,40 @@
     Revealing is handled by the panzoom action's tap hit-test so mouse, touch,
     pointer capture, and drag suppression all use the same event path.
   -->
-  <g id="map-content" transform="translate({view.tx} {view.ty}) scale({view.scale})">
-    {#each COUNTRIES as country (country.id)}
-      <g
-        id={country.id}
-        data-cid={country.id}
-        class:revealed={revealed.has(country.id)}
-      >
-        {#each country.paths as p, i (i)}
-          <path
-            d={p.d}
-            class="land-path"
-            class:revealed={revealed.has(country.id)}
-          />
-        {/each}
-      </g>
-    {/each}
+  <g
+    id="map-content"
+    transform="translate({view.tx} {view.ty}) scale({view.scale})"
+  >
+    <g id="country-layer">
+      {#each COUNTRIES as country (country.id)}
+        <g
+          id={country.id}
+          data-cid={country.id}
+          class:revealed={revealed.has(country.id)}
+        >
+          {#each country.paths as p, i (i)}
+            <path
+              d={p.d}
+              class="land-path"
+              class:revealed={revealed.has(country.id)}
+            />
+          {/each}
+        </g>
+      {/each}
+    </g>
 
-    <!-- Labels layer (declarative in later phases) -->
-    <g id="labels"></g>
+    <g id="labels" aria-hidden="true">
+      {#each visibleLabels as country (country.id)}
+        <text
+          class="country-label"
+          x={country.label.x}
+          y={country.label.y}
+          style={`font-size: ${labelFontSize}px; stroke-width: ${labelStrokeWidth}px;`}
+        >
+          {country.name}
+        </text>
+      {/each}
+    </g>
   </g>
 </svg>
 
@@ -57,12 +117,27 @@
     fill: var(--land-unrevealed);
     stroke: var(--land-unrevealed-stroke);
     stroke-width: 0.7;
-    transition: fill 180ms var(--ease), stroke 180ms var(--ease);
+    transition:
+      fill 180ms var(--ease),
+      stroke 180ms var(--ease);
   }
   .land-path.revealed,
   g.revealed .land-path {
     fill: var(--land-revealed);
     stroke: var(--land-revealed-stroke);
     stroke-width: 1.1;
+  }
+
+  .country-label {
+    pointer-events: none;
+    user-select: none;
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-weight: 700;
+    letter-spacing: 0;
+    fill: color-mix(in srgb, var(--land-revealed-stroke) 82%, white);
+    stroke: color-mix(in srgb, var(--ocean) 90%, black);
+    stroke-linejoin: round;
+    paint-order: stroke fill;
   }
 </style>
