@@ -1250,8 +1250,11 @@
       styleCountryRevealed(state.svg, cid);
 
       // Add label (may be skipped for tiny)
+      // Slight delay so the country shape expands first, then the name appears on top.
       try {
-        addCountryLabel(cid, name, state.svg, state.labelsG);
+        setTimeout(() => {
+          addCountryLabel(cid, name, state.svg, state.labelsG);
+        }, 120);
       } catch (e) {
         // Resilient: label failure should not break reveal
       }
