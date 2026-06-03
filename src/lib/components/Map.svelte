@@ -22,15 +22,17 @@
   const incorrectPick = $derived(mapState.incorrectPick);
   const incorrectPickPulse = $derived(mapState.incorrectPickPulse);
   const labelStrokeWidth = $derived(getMapLabelStrokeWidth(view.scale));
-  const visibleLabels = $derived.by(() => {
-    const candidates = COUNTRIES.filter((country) => revealed.has(country.id))
-      .map((country) => ({
-        ...country,
-        label: COUNTRY_LABEL_ANCHORS[country.id],
-      }));
+  const globalLabels = $derived.by(() => {
+    const candidates = COUNTRIES.map((country) => ({
+      ...country,
+      label: COUNTRY_LABEL_ANCHORS[country.id],
+    }));
 
     return layoutCountryLabels(candidates, view.scale);
   });
+  const visibleLabels = $derived.by(() =>
+    globalLabels.filter((country) => revealed.has(country.id)),
+  );
 </script>
 
 <svg

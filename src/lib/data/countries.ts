@@ -12,6 +12,8 @@ export interface CountryLabelAnchor {
   x: number;
   y: number;
   area: number;
+  width: number;
+  height: number;
 }
 
 export const COUNTRIES: CountryData[] = [
@@ -2185,6 +2187,8 @@ function labelAnchor(country: CountryData): CountryLabelAnchor {
     x: (largest.minX + largest.maxX) / 2,
     y: (largest.minY + largest.maxY) / 2,
     area: largestArea,
+    width: Math.max(0, largest.maxX - largest.minX),
+    height: Math.max(0, largest.maxY - largest.minY),
   };
 }
 

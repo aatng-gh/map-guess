@@ -15,7 +15,7 @@ const validCountry: CountryData = {
 };
 
 const validAnchors: Record<string, CountryLabelAnchor> = {
-  aa: { x: 0.5, y: 0.5, area: 1 },
+  aa: { x: 0.5, y: 0.5, area: 1, width: 1, height: 1 },
 };
 
 describe('country data validation', () => {
@@ -37,7 +37,7 @@ describe('country data validation', () => {
   it('reports missing country names and paths', () => {
     const issues = validateCountryData(
       [{ id: 'bb', name: ' ', paths: [{ d: ' ' }] }],
-      { bb: { x: 1, y: 1, area: 1 } }
+      { bb: { x: 1, y: 1, area: 1, width: 1, height: 1 } }
     );
 
     expect(issues).toEqual(
@@ -61,7 +61,7 @@ describe('country data validation', () => {
 
   it('reports invalid label anchors', () => {
     const issues = validateCountryData([validCountry], {
-      aa: { x: Number.NaN, y: 1, area: 0 },
+      aa: { x: Number.NaN, y: 1, area: 0, width: 0, height: 0 },
     });
 
     expect(issues).toContainEqual(

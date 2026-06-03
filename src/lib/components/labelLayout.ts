@@ -16,13 +16,34 @@ interface PlacedLabel extends LabelCandidate {
   };
 }
 
+const MIN_LABEL_SCREEN_AREA = 360;
+const MIN_READABLE_SCREEN_FONT = 6.2;
+const LABEL_WIDTH_FIT = 0.9;
+const ESTIMATED_GLYPH_WIDTH = 0.58;
+
+function hasEnoughVisibleArea(country: LabelCandidate, scale: number) {
+  return country.label.area * scale * scale >= MIN_LABEL_SCREEN_AREA;
+}
+
+function getLabelFitFontSize(country: LabelCandidate, scale: number) {
+  const baseFontSize = getMapLabelFontSize(scale);
+  const fitFontSize =
+    (country.label.width * LABEL_WIDTH_FIT) /
+    Math.max(1, country.name.length * ESTIMATED_GLYPH_WIDTH);
+
+  return Math.min(baseFontSize, fitFontSize);
+}
+
 function getLabelBox(
   country: LabelCandidate,
   fontSize: number,
   scale: number,
   offset = { x: 0, y: 0 },
 ): PlacedLabel['labelBox'] {
-  const width = Math.max(16, country.name.length * fontSize * 0.58);
+  const width = Math.max(
+    16,
+    country.name.length * fontSize * ESTIMATED_GLYPH_WIDTH,
+  );
   const height = fontSize * 1.35;
   const padding = 1.8 / scale;
   const x = country.label.x + offset.x;
@@ -62,25 +83,21 @@ export function layoutCountryLabels(
   countries: LabelCandidate[],
   scale: number,
 ) {
-  const baseFontSize = getMapLabelFontSize(scale);
-  const fallbackFontSizes = [
-    baseFontSize,
-    Math.max(6.2, baseFontSize * 0.78),
-    Math.max(4.8, baseFontSize * 0.62),
-    Math.max(3.8, baseFontSize * 0.48),
-  ];
   const placed: PlacedLabel[] = [];
 
   countries
+    .filter((country) => hasEnoughVisibleArea(country, scale))
     .sort((a, b) => b.label.area - a.label.area)
-    .forEach((country, index) => {
-      const smallestFontSize = fallbackFontSizes[fallbackFontSizes.length - 1];
-      const forcedNudge = smallestFontSize * (1.2 + (index % 5) * 0.45);
-      const forcedAngle = index * 2.399963229728653;
-      const forcedOffset = {
-        x: Math.cos(forcedAngle) * forcedNudge,
-        y: Math.sin(forcedAngle) * forcedNudge,
-      };
+    .forEach((country) => {
+      const baseFontSize = getLabelFitFontSize(country, scale);
+      if (baseFontSize * scale < MIN_READABLE_SCREEN_FONT) return;
+
+      const fallbackFontSizes = [
+        baseFontSize,
+        baseFontSize * 0.78,
+        baseFontSize * 0.62,
+        baseFontSize * 0.48,
+      ];
 
       for (const fontSize of fallbackFontSizes) {
         const nudge = fontSize * 1.45;
@@ -113,20 +130,6 @@ export function layoutCountryLabels(
           }
         }
       }
-
-      const labelBox = getLabelBox(
-        country,
-        smallestFontSize,
-        scale,
-        forcedOffset,
-      );
-      placed.push({
-        ...country,
-        fontSize: smallestFontSize,
-        labelX: country.label.x + forcedOffset.x,
-        labelY: country.label.y + forcedOffset.y,
-        labelBox,
-      });
     });
 
   return placed;

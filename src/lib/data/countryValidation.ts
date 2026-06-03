@@ -18,7 +18,11 @@ function hasValidAnchor(anchor: CountryLabelAnchor | undefined): anchor is Count
     Number.isFinite(anchor.x) &&
     Number.isFinite(anchor.y) &&
     Number.isFinite(anchor.area) &&
-    anchor.area > 0
+    Number.isFinite(anchor.width) &&
+    Number.isFinite(anchor.height) &&
+    anchor.area > 0 &&
+    anchor.width > 0 &&
+    anchor.height > 0
   );
 }
 
