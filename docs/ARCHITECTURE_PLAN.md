@@ -40,7 +40,7 @@ state, and data validation are beginning to crowd the same state object.
 - [x] Introduce `GameModeController` and port Explore/Quiz tap handling to it.
 - [x] Split `MapState` responsibilities into view, reveal, session, and
   persistence modules while keeping `MapState` as the UI facade.
-- [ ] Add versioned persistence adapters and migration tests.
+- [x] Add versioned persistence adapters and migration tests.
 - [ ] Add component and browser regression tests.
 
 ## Phase 1: Domain Boundaries
@@ -107,6 +107,9 @@ alias, and difficulty metadata are still pending.
 - Store preferences separately from active game progress.
 - Add recovery paths for removed country ids and changed mode names.
 
+Status: versioned load/save/migrate/clear adapters are complete for active game
+progress. Preference persistence remains pending until settings exist.
+
 ## Phase 5: Test Layers
 
 - Unit tests:
@@ -149,7 +152,7 @@ alias, and difficulty metadata are still pending.
 4. Introduce `GameModeController` and port Explore/Quiz to it. Done.
 5. Split `MapState` into view, reveal, session, and persistence modules. Done.
 6. Add region quiz and end-of-round summary.
-7. Add versioned persistence and migration tests.
+7. Add versioned persistence and migration tests. Done.
 8. Add browser regression tests for the UI paths already manually verified.
 
 ## Definition Of Done

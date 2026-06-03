@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { COUNTRIES } from '$lib/data/countries';
 import {
   clearSavedState,
-  readSavedState,
-  saveState,
+  CURRENT_SAVE_VERSION,
+  loadSavedState,
+  migrateSavedState,
+  saveSavedState,
   STORAGE_KEY,
 } from '$lib/game/mapPersistence';
 
@@ -30,6 +32,48 @@ describe('map persistence', () => {
     vi.stubGlobal('localStorage', createLocalStorageMock());
   });
 
+  it('migrates legacy saved state without an explicit version', () => {
+    expect(
+      migrateSavedState({
+        revealed: [firstCountry.id, 'not-a-country'],
+        mode: 'unknown',
+        bestQuizScore: Number.NaN,
+      }),
+    ).toEqual({
+      version: CURRENT_SAVE_VERSION,
+      revealed: [firstCountry.id],
+      mode: 'explore',
+      bestQuizScore: 0,
+    });
+  });
+
+  it('migrates current version saved state', () => {
+    expect(
+      migrateSavedState({
+        version: 1,
+        revealed: [firstCountry.id],
+        mode: 'quiz',
+        bestQuizScore: 4,
+      }),
+    ).toEqual({
+      version: CURRENT_SAVE_VERSION,
+      revealed: [firstCountry.id],
+      mode: 'quiz',
+      bestQuizScore: 4,
+    });
+  });
+
+  it('rejects unsupported saved state versions', () => {
+    expect(
+      migrateSavedState({
+        version: 999,
+        revealed: [firstCountry.id],
+        mode: 'quiz',
+        bestQuizScore: 4,
+      }),
+    ).toBeNull();
+  });
+
   it('normalizes invalid saved state while loading', () => {
     vi.mocked(localStorage.getItem).mockReturnValue(
       JSON.stringify({
@@ -39,16 +83,22 @@ describe('map persistence', () => {
       }),
     );
 
-    expect(readSavedState()).toEqual({
-      version: 1,
+    expect(loadSavedState()).toEqual({
+      version: CURRENT_SAVE_VERSION,
       revealed: [firstCountry.id],
       mode: 'explore',
       bestQuizScore: 4,
     });
   });
 
+  it('returns null when saved JSON cannot be parsed', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('{nope');
+
+    expect(loadSavedState()).toBeNull();
+  });
+
   it('saves only stable persisted state', () => {
-    saveState({
+    saveSavedState({
       revealed: [firstCountry.id, 'not-a-country' as typeof firstCountry.id],
       mode: 'quiz',
       bestQuizScore: 8,
@@ -57,7 +107,7 @@ describe('map persistence', () => {
     expect(localStorage.setItem).toHaveBeenCalledWith(
       STORAGE_KEY,
       JSON.stringify({
-        version: 1,
+        version: CURRENT_SAVE_VERSION,
         revealed: [firstCountry.id],
         mode: 'quiz',
         bestQuizScore: 8,

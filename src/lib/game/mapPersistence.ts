@@ -3,39 +3,66 @@ import type { GameMode, PersistedMapState } from '$lib/game/gameTypes';
 import { isCountryId } from '$lib/game/revealState';
 
 export const STORAGE_KEY = 'map-g:mvp-state';
+export const CURRENT_SAVE_VERSION = 1;
 
-export function readSavedState(): PersistedMapState | null {
+type RawSavedState = Partial<
+  Omit<PersistedMapState, 'revealed'> & {
+    revealed: unknown;
+    version: unknown;
+  }
+>;
+
+function normalizeMode(mode: unknown): GameMode {
+  return mode === 'quiz' ? 'quiz' : 'explore';
+}
+
+function normalizeRevealed(revealed: unknown) {
+  return Array.isArray(revealed)
+    ? revealed.filter(
+        (id): id is CountryId => typeof id === 'string' && isCountryId(id),
+      )
+    : [];
+}
+
+function normalizeBestQuizScore(bestQuizScore: unknown) {
+  return typeof bestQuizScore === 'number' && Number.isFinite(bestQuizScore)
+    ? bestQuizScore
+    : 0;
+}
+
+export function migrateSavedState(raw: unknown): PersistedMapState | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const parsed = raw as RawSavedState;
+  const version = parsed.version ?? CURRENT_SAVE_VERSION;
+  if (version !== CURRENT_SAVE_VERSION) return null;
+
+  return {
+    version: CURRENT_SAVE_VERSION,
+    revealed: normalizeRevealed(parsed.revealed),
+    mode: normalizeMode(parsed.mode),
+    bestQuizScore: normalizeBestQuizScore(parsed.bestQuizScore),
+  };
+}
+
+export function loadSavedState(): PersistedMapState | null {
   if (typeof localStorage === 'undefined') return null;
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as Partial<PersistedMapState>;
-    const mode: GameMode = parsed.mode === 'quiz' ? 'quiz' : 'explore';
-    const revealed = Array.isArray(parsed.revealed)
-      ? parsed.revealed.filter(
-          (id): id is CountryId => typeof id === 'string' && isCountryId(id),
-        )
-      : [];
-
-    return {
-      version: 1,
-      revealed,
-      mode,
-      bestQuizScore:
-        typeof parsed.bestQuizScore === 'number' ? parsed.bestQuizScore : 0,
-    };
+    return migrateSavedState(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
-export function saveState(payload: Omit<PersistedMapState, 'version'>) {
+export function saveSavedState(payload: Omit<PersistedMapState, 'version'>) {
   if (typeof localStorage === 'undefined') return;
 
   const persisted: PersistedMapState = {
-    version: 1,
+    version: CURRENT_SAVE_VERSION,
     revealed: payload.revealed.filter(isCountryId),
     mode: payload.mode,
     bestQuizScore: payload.bestQuizScore,

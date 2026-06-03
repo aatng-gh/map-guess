@@ -15,8 +15,8 @@ import {
 import type { GameMode } from '$lib/game/gameTypes';
 import {
   clearSavedState,
-  readSavedState,
-  saveState,
+  loadSavedState,
+  saveSavedState,
 } from '$lib/game/mapPersistence';
 import {
   randomUnrevealedCountry,
@@ -44,7 +44,7 @@ export class MapState {
   lastMessage = $state('Ready');
 
   constructor() {
-    const saved = readSavedState();
+    const saved = loadSavedState();
     if (saved) {
       this.revealed = new Set(saved.revealed);
       this.mode = saved.mode;
@@ -196,7 +196,7 @@ export class MapState {
   }
 
   persist() {
-    saveState({
+    saveSavedState({
       revealed: Array.from(this.revealed),
       mode: this.mode,
       bestQuizScore: this.bestQuizScore,
