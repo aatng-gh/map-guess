@@ -1,5 +1,11 @@
 import { ALL_IDS, COUNTRIES, COUNTRY_NAMES, TOTAL } from '$lib/data/countries';
 import type { CountryId } from '$lib/data/countries';
+import {
+  exploreMode,
+  quizMode,
+  type GameModeController,
+  type GameModeRuntime,
+} from '$lib/game/gameModes';
 import type { View } from '$lib/gestures/mapGestures';
 
 export type GameMode = 'explore' | 'quiz';
@@ -30,6 +36,10 @@ function nextTarget(exclude: Set<CountryId>) {
   const remaining = COUNTRIES.filter((country) => !exclude.has(country.id));
   if (remaining.length === 0) return null;
   return remaining[Math.floor(Math.random() * remaining.length)].id;
+}
+
+function controllerForMode(mode: GameMode): GameModeController {
+  return mode === 'quiz' ? quizMode : exploreMode;
 }
 
 function readSavedState(): PersistedMapState | null {
@@ -114,13 +124,47 @@ export class MapState {
     return this.count >= this.total;
   }
 
-  reveal(cid: CountryId) {
-    if (this.mode === 'quiz') {
-      this.answer(cid);
-      return;
-    }
+  get modeController() {
+    return controllerForMode(this.mode);
+  }
 
-    this.revealCountry(cid);
+  get modeRuntime(): GameModeRuntime {
+    return {
+      getCompletedAt: () => this.completedAt,
+      incrementCorrect: () => {
+        this.correct += 1;
+      },
+      incrementMisses: () => {
+        this.misses += 1;
+      },
+      getStreak: () => this.streak,
+      setStreak: (streak) => {
+        this.streak = streak;
+      },
+      setBestStreak: (bestStreak) => {
+        this.bestStreak = Math.max(this.bestStreak, bestStreak);
+      },
+      getTarget: () => this.target,
+      setTarget: (target) => {
+        this.target = target;
+      },
+      getTargetName: () => this.targetName,
+      revealCountry: (cid) => this.revealCountry(cid),
+      setRevealed: (revealed) => {
+        this.revealed = revealed;
+      },
+      finishIfComplete: () => this.finishIfComplete(),
+      persist: () => this.persist(),
+      setLastMessage: (message) => {
+        this.lastMessage = message;
+      },
+      nextTarget,
+      getRevealed: () => this.revealed,
+    };
+  }
+
+  reveal(cid: CountryId) {
+    this.modeController.handleCountryTap(this.modeRuntime, cid);
   }
 
   revealCountry(cid: CountryId) {
@@ -138,28 +182,11 @@ export class MapState {
   }
 
   answer(cid: CountryId) {
-    if (!this.target || this.completedAt) return;
-
-    if (cid === this.target) {
-      const nextRevealed = new Set([...this.revealed, cid]);
-      this.revealed = nextRevealed;
-      this.correct += 1;
-      this.streak += 1;
-      this.bestStreak = Math.max(this.bestStreak, this.streak);
-      this.lastMessage = `Correct: ${COUNTRY_NAMES[cid]}`;
-      this.target = nextTarget(nextRevealed);
-      this.finishIfComplete();
-      this.persist();
-      return;
-    }
-
-    this.misses += 1;
-    this.streak = 0;
-    this.lastMessage = `${COUNTRY_NAMES[cid]} is not ${this.targetName}`;
+    quizMode.handleCountryTap(this.modeRuntime, cid);
   }
 
   revealRandom() {
-    if (this.mode === 'quiz') {
+    if (!this.modeController.canRevealRandom) {
       this.lastMessage = 'Random reveal is available in Explore mode';
       return;
     }

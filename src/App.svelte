@@ -3,14 +3,13 @@
   import Map from '$lib/components/Map.svelte';
   import GamePanel from '$lib/components/GamePanel.svelte';
   import ZoomRail from '$lib/components/ZoomRail.svelte';
+  import { setMapContext } from '$lib/context/mapContext';
+  import { commandForShortcut, runMapCommand } from '$lib/game/mapCommands';
   import { MapState } from '$lib/game/mapState.svelte';
   import { shouldIgnoreMapShortcut } from '$lib/gestures/mapGestures';
 
   const mapState = new MapState();
-
-  // Context API (consumed by Map, Panel, Rail) — class instance is reactive
-  import { setContext } from 'svelte';
-  setContext('map', mapState);
+  setMapContext(mapState);
 
   // Expose for easy auditing / chrome mcp evaluate_script / tests
   if (typeof window !== 'undefined') {
@@ -29,13 +28,11 @@
   function handleKeydown(e: KeyboardEvent) {
     if (shouldIgnoreMapShortcut(e.target)) return;
 
-    if (e.key.toLowerCase() === 'r') {
-      e.preventDefault();
-      mapState.revealRandom();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      mapState.resetAll();
-    }
+    const command = commandForShortcut(e.key);
+    if (!command) return;
+
+    e.preventDefault();
+    runMapCommand(mapState, command);
   }
 </script>
 

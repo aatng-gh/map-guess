@@ -1,16 +1,15 @@
 <script lang="ts">
   // Declarative Svelte map + reworked gestures (panzoom action)
-  import { getContext } from 'svelte';
+  import { getMapContext } from '$lib/context/mapContext';
   import { COUNTRIES, COUNTRY_LABEL_ANCHORS } from '$lib/data/countries';
   import { panzoom } from '$lib/actions/panzoom';
-  import type { MapState } from '$lib/game/mapState.svelte';
   import type { View } from '$lib/gestures/mapGestures';
 
   interface Props {
     view?: View;
   }
 
-  const mapState = getContext<MapState>('map');
+  const mapState = getMapContext();
 
   // View bound to the class state (panzoom action will drive it)
   let { view = $bindable({ tx: 0, ty: 0, scale: 1 }) }: Props = $props();

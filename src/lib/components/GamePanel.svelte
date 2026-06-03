@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
-  import type { MapState } from '$lib/game/mapState.svelte';
+  import { getMapContext } from '$lib/context/mapContext';
+  import { runMapCommand } from '$lib/game/mapCommands';
 
-  const mapState = getContext<MapState>('map');
+  const mapState = getMapContext();
 
   const count = $derived(mapState.count);
   const total = $derived(mapState.total);
@@ -125,14 +125,14 @@
       class="action-button glass-contained-positive action-random touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Reveal a random country"
       disabled={mapState.mode === 'quiz'}
-      onclick={() => mapState.revealRandom && mapState.revealRandom()}
+      onclick={() => runMapCommand(mapState, 'game.revealRandom')}
     >
       Random
     </button>
     <button
       class="action-button glass-contained-danger action-reset touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Start a new game"
-      onclick={() => mapState.newGame()}
+      onclick={() => runMapCommand(mapState, 'game.new')}
     >
       New
     </button>
@@ -141,7 +141,7 @@
   <button
     type="button"
     class="clear-button mt-2 w-full rounded-2xl px-3 py-1.5 text-xs font-semibold"
-    onclick={() => mapState.clearSavedProgress()}
+    onclick={() => runMapCommand(mapState, 'game.clearSavedProgress')}
   >
     Clear saved progress
   </button>

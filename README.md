@@ -61,6 +61,10 @@ Svelte 5 (runes mode) + Vite + TypeScript + Tailwind.
 
 Original single-file vanilla implementation preserved as `index.vanilla.html` for reference.
 
+## Architecture
+
+See [`docs/ARCHITECTURE_PLAN.md`](docs/ARCHITECTURE_PLAN.md) for the current plan to split gameplay, map interaction, persistence, country data, and tests into clearer system boundaries.
+
 ## Screenshots
 
 (Placeholder — drop nice screenshots of the grey starting map and some revealed countries here.)
