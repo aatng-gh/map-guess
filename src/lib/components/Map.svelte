@@ -110,7 +110,6 @@
     paint-order: stroke fill;
   }
 
-  :global(#world-map.map-pressed) .country-label,
   :global(#world-map.dragging) .country-label {
     visibility: hidden;
   }

@@ -18,7 +18,6 @@
   --land-unrevealed-stroke: #64748b;
   --land-revealed: #14b8a6;
   --land-revealed-stroke: #0f766e;
-  --land-revealed-shadow: rgb(0 0 0 / 0.12);
 
   /* Liquid Glass Materials (dark frosted, adaptive tint) */
   --glass-bg: rgba(15, 23, 42, 0.72);
@@ -260,18 +259,8 @@ body {
   vector-effect: non-scaling-stroke;
 }
 
-#world-map path.revealed {
-  filter: drop-shadow(0 1px 2px var(--land-revealed-shadow));
-}
-
-#world-map.map-pressed path,
 #world-map.dragging path {
   transition: none;
-}
-
-#world-map.map-pressed path.revealed,
-#world-map.dragging path.revealed {
-  filter: none;
 }
 
 #world-map text,
