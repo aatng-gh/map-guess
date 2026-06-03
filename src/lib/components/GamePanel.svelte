@@ -86,9 +86,7 @@
       <div class="target-name text-base font-semibold leading-tight">
         {targetName ?? 'Complete'}
       </div>
-      <div
-        class="mt-2 grid grid-cols-4 gap-2 text-center text-[11px] tabular-nums"
-      >
+      <div class="quiz-stats mt-2 grid grid-cols-4 gap-2 text-center tabular-nums">
         <div>
           <div class="stat-value">{mapState.correct}</div>
           <div class="stat-label">Hit</div>
@@ -193,10 +191,15 @@
   .stat-value {
     color: white;
     font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.1;
   }
 
   .stat-label {
     color: var(--text-muted);
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    margin-top: 0.125rem;
   }
 
   .danger-disclosure {
@@ -352,6 +355,14 @@
       margin-bottom: 0.625rem;
       padding: 0.5rem 0.625rem;
       border-radius: 14px;
+    }
+
+    .stat-value {
+      font-size: 0.875rem;
+    }
+
+    .stat-label {
+      font-size: 0.625rem;
     }
 
     .action-row {
