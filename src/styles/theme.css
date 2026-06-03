@@ -299,18 +299,27 @@ body {
   cursor: pointer;
 }
 
+body.is-map-pressed,
 body.is-dragging-map,
+#world-map.map-pressed,
 #world-map.dragging,
+body.is-map-pressed #world-map,
 body.is-dragging-map #world-map,
+body.is-map-pressed #map-content,
 body.is-dragging-map #map-content,
+#world-map.map-pressed #map-content,
 #world-map.dragging #map-content {
   cursor: grabbing !important;
 }
 
-/* Ensure grabbing cursor wins over land pointer during active drag (hold + past threshold) */
+/* Ensure press/drag cursor wins over land pointer while the mouse button is down. */
+body.is-map-pressed #map-viewport g[data-cid],
 body.is-dragging-map #map-viewport g[data-cid],
+#world-map.map-pressed g[data-cid],
 #world-map.dragging g[data-cid],
+body.is-map-pressed #map-viewport g[data-cid] path,
 body.is-dragging-map #map-viewport g[data-cid] path,
+#world-map.map-pressed g[data-cid] path,
 #world-map.dragging g[data-cid] path {
   cursor: grabbing !important;
 }

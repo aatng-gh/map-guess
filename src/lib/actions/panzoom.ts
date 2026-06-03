@@ -166,6 +166,11 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     }
   }
 
+  function setMapPressed(isPressed: boolean) {
+    node.classList.toggle('map-pressed', isPressed);
+    document.body.classList.toggle('is-map-pressed', isPressed);
+  }
+
   function getWorldPoint(client: Point) {
     return getSVGPoint(client.x, client.y);
   }
@@ -196,8 +201,10 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
         client,
       );
       gesture.hasDragged = false;
+      setMapPressed(true);
     }
     if (gesture.pointers.size >= 2) {
+      setMapPressed(false);
       setDragging(true);
     }
     gesture.prevPinch = null;
@@ -214,6 +221,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
         hasCrossedDragThreshold(gesture.dragStart, client)
       ) {
         gesture.hasDragged = true;
+        setMapPressed(false);
         setDragging(true);
       }
 
@@ -263,6 +271,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       }
 
       gesture.hasDragged = false;
+      setMapPressed(false);
       setDragging(false);
 
       if (wasDrag) {
@@ -284,6 +293,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
         remainingPointer,
       );
       gesture.hasDragged = false;
+      setMapPressed(true);
       setDragging(false);
     }
   }
@@ -368,6 +378,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       window.removeEventListener('keydown', onKeydown);
       window.removeEventListener('resize', refreshCoordinateSpace);
       window.cancelAnimationFrame(initialFitFrame);
+      setMapPressed(false);
       setDragging(false);
     },
   };
