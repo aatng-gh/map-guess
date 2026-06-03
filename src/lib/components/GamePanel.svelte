@@ -124,9 +124,10 @@
 
   <div class="sr-only" aria-live="polite">{mapState.lastMessage}</div>
 
-  <div class="action-row flex gap-2" role="group" aria-label="Game actions">
+  <div class="action-row grid grid-cols-3 gap-2" role="group" aria-label="Game actions">
     <button
-      class="action-button glass-contained-positive action-random touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
+      type="button"
+      class="action-button glass-contained-positive action-random touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Reveal a random country"
       disabled={mapState.mode === 'quiz'}
       onclick={() => runMapCommand(mapState, 'game.revealRandom')}
@@ -134,7 +135,8 @@
       Random
     </button>
     <button
-      class="action-button glass-contained action-undo touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
+      type="button"
+      class="action-button glass-contained action-undo touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Undo last reveal"
       disabled={!mapState.canUndo}
       onclick={() => runMapCommand(mapState, 'game.undo')}
@@ -142,7 +144,8 @@
       Undo
     </button>
     <button
-      class="action-button glass-contained-danger action-reset touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
+      type="button"
+      class="action-button glass-contained-danger action-reset touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Start a new game"
       onclick={() => runMapCommand(mapState, 'game.new')}
     >
@@ -150,13 +153,18 @@
     </button>
   </div>
 
-  <button
-    type="button"
-    class="clear-button mt-2 w-full rounded-2xl px-3 py-1.5 text-xs font-semibold"
-    onclick={() => runMapCommand(mapState, 'game.clearSavedProgress')}
-  >
-    Clear saved progress
-  </button>
+  <details class="danger-disclosure mt-2">
+    <summary class="danger-summary" aria-label="Show more actions">
+      <span class="danger-chevron" aria-hidden="true"></span>
+    </summary>
+    <button
+      type="button"
+      class="clear-button mt-2 w-full rounded-2xl px-3 py-1.5 text-xs font-semibold"
+      onclick={() => runMapCommand(mapState, 'game.clearSavedProgress')}
+    >
+      Clear saved progress
+    </button>
+  </details>
 </section>
 
 <style>
@@ -191,26 +199,112 @@
     color: var(--text-muted);
   }
 
-  .clear-button {
-    color: color-mix(in oklch, var(--text-on-glass), var(--danger) 16%);
-    background: rgb(255 255 255 / 0.1);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+  .danger-disclosure {
+    color: var(--text-muted);
+  }
+
+  .danger-summary {
+    width: 100%;
+    height: 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: transparent;
     transition:
       color 160ms var(--ease),
+      background 160ms var(--ease);
+  }
+
+  .danger-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .danger-disclosure[open] .danger-summary,
+  .danger-summary:hover,
+  .danger-summary:focus-visible {
+    color: white;
+    background: rgb(255 255 255 / 0.1);
+  }
+
+  .danger-chevron {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 160ms var(--ease);
+  }
+
+  .danger-disclosure[open] .danger-chevron {
+    transform: translateY(2px) rotate(225deg);
+  }
+
+  .clear-button {
+    color: white;
+    background: color-mix(in oklch, var(--danger-solid), black 8%);
+    border: 1px solid color-mix(in oklch, var(--danger-solid), white 18%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 6px 12px -8px rgb(0 0 0 / 0.45);
+    transition:
       background 160ms var(--ease),
+      border-color 160ms var(--ease),
       box-shadow 160ms var(--ease);
   }
 
   .clear-button:hover,
   .clear-button:focus-visible {
-    color: white;
-    background: color-mix(in oklch, var(--glass-bg-strong), var(--danger) 16%);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--glass-border-strong), var(--danger) 28%);
+    background: color-mix(in oklch, var(--danger-solid), white 8%);
+    border-color: color-mix(in oklch, var(--danger-solid), white 30%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      0 8px 16px -10px rgb(0 0 0 / 0.52);
+  }
+
+  .action-button,
+  .clear-button {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .action-button::before,
+  .clear-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--glass-inner-highlight);
+    opacity: 0.38;
+    pointer-events: none;
+    transition: opacity 160ms var(--ease);
+  }
+
+  .action-button:hover::before,
+  .action-button:focus-visible::before,
+  .clear-button:hover::before,
+  .clear-button:focus-visible::before {
+    opacity: 0.56;
   }
 
   .action-button:disabled {
     cursor: not-allowed;
     opacity: 0.45;
+  }
+
+  .action-button:disabled::before {
+    opacity: 0.18;
   }
 
   @media (max-width: 900px) {
@@ -271,11 +365,18 @@
       font-size: 0.8125rem;
     }
 
-    .clear-button {
+    .danger-disclosure {
       margin-top: 0.5rem;
+    }
+
+    .clear-button {
       border-radius: 14px;
       padding: 0.375rem 0.75rem;
       font-size: 0.6875rem;
+    }
+
+    .danger-summary {
+      height: 1.125rem;
     }
   }
 
