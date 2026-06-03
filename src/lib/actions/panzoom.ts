@@ -43,15 +43,6 @@ interface PanZoomParams {
   view?: View;
 }
 
-function getSVGPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
-  const pt = svg.createSVGPoint();
-  pt.x = clientX;
-  pt.y = clientY;
-  const ctm = svg.getScreenCTM();
-  if (!ctm) return { x: 0, y: 0 };
-  return pt.matrixTransform(ctm.inverse());
-}
-
 function applyTransform(
   content: SVGGElement,
   tx: number,
@@ -90,6 +81,20 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   const gesture = createGestureState();
   let currentView: View = params.view || { tx: 0, ty: 0, scale: 1 };
   let initialFitFrame = 0;
+  const svgPoint = node.createSVGPoint();
+  let screenMatrixInverse: DOMMatrix | null = null;
+
+  function refreshCoordinateSpace() {
+    screenMatrixInverse = node.getScreenCTM()?.inverse() ?? null;
+  }
+
+  function getSVGPoint(clientX: number, clientY: number) {
+    svgPoint.x = clientX;
+    svgPoint.y = clientY;
+    return screenMatrixInverse
+      ? svgPoint.matrixTransform(screenMatrixInverse)
+      : { x: 0, y: 0 };
+  }
 
   function syncView() {
     if (params.view) {
@@ -100,14 +105,14 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     }
   }
 
-  function updateTransform() {
+  function updateTransform(syncExternal = true) {
     applyTransform(mapContent, currentView.tx, currentView.ty, currentView.scale);
-    syncView();
+    if (syncExternal) syncView();
   }
 
-  function setCurrentView(nextView: View) {
+  function setCurrentView(nextView: View, syncExternal = true) {
     currentView = nextView;
-    updateTransform();
+    updateTransform(syncExternal);
   }
 
   function getViewportSize() {
@@ -136,6 +141,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   }
 
   function fitToScreen() {
+    refreshCoordinateSpace();
     setCurrentView(
       fitViewToViewport(
         getContentBounds(),
@@ -161,7 +167,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   }
 
   function getWorldPoint(client: Point) {
-    return getSVGPoint(node, client.x, client.y);
+    return getSVGPoint(client.x, client.y);
   }
 
   function revealTargetAt(client: Point) {
@@ -174,6 +180,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   }
 
   function onPointerDown(e: PointerEvent) {
+    refreshCoordinateSpace();
     try {
       node.setPointerCapture(e.pointerId);
     } catch {
@@ -212,6 +219,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
 
       setCurrentView(
         panToPointer(currentView, gesture.dragStart, getWorldPoint(client)),
+        false,
       );
     } else if (gesture.pointers.size === 2) {
       const nextPinch = getPinchFrame(gesture.pointers.values());
@@ -229,7 +237,10 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
         nextPinch,
         centerWorld,
       );
-      setCurrentView(applyPinchPan(zoomedView, gesture.prevPinch, nextPinch));
+      setCurrentView(
+        applyPinchPan(zoomedView, gesture.prevPinch, nextPinch),
+        false,
+      );
       gesture.prevPinch = nextPinch;
     }
   }
@@ -245,6 +256,8 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       if (gesture.dragStart) {
         if (!wasDrag) {
           setCurrentView(resetMicroPan(currentView, gesture.dragStart));
+        } else {
+          syncView();
         }
         gesture.dragStart = null;
       }
@@ -284,7 +297,8 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   // Wheel zoom (around point)
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
-    const pt = getSVGPoint(node, e.clientX, e.clientY);
+    refreshCoordinateSpace();
+    const pt = getSVGPoint(e.clientX, e.clientY);
     const factor = e.deltaY < 0 ? 1.18 : 0.86;
     setCurrentView(zoomAt(currentView, pt, factor));
   };
@@ -293,11 +307,13 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   // Double-tap / dblclick zoom in
   const onDbl = (e: MouseEvent) => {
     e.preventDefault();
-    const pt = getSVGPoint(node, e.clientX, e.clientY);
+    refreshCoordinateSpace();
+    const pt = getSVGPoint(e.clientX, e.clientY);
     setCurrentView(zoomAt(currentView, pt, 1.55));
   };
   node.addEventListener('dblclick', onDbl);
 
+  refreshCoordinateSpace();
   updateTransform();
   initialFitFrame = window.requestAnimationFrame(fitToScreen);
 
@@ -330,6 +346,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   window.addEventListener('map:fit-view', onFitRequest);
   window.addEventListener('map:zoom-view', onZoomRequest);
   window.addEventListener('keydown', onKeydown);
+  window.addEventListener('resize', refreshCoordinateSpace);
 
   return {
     update(newParams: PanZoomParams | undefined) {
@@ -349,6 +366,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       window.removeEventListener('map:fit-view', onFitRequest);
       window.removeEventListener('map:zoom-view', onZoomRequest);
       window.removeEventListener('keydown', onKeydown);
+      window.removeEventListener('resize', refreshCoordinateSpace);
       window.cancelAnimationFrame(initialFitFrame);
       setDragging(false);
     },
