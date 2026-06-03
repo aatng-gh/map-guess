@@ -85,8 +85,11 @@ body {
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   color: var(--text-on-glass);
-  position: relative;
   overflow: hidden;
+}
+
+.glass:not(.absolute):not(.fixed):not(.sticky) {
+  position: relative;
 }
 
 /* Specular / liquid highlight layer (the "Liquid Glass" signature) */
@@ -328,46 +331,6 @@ body.is-dragging-map #map-viewport g[data-cid] path,
   transition: transform var(--dur-expand) var(--ease);
 }
 
-/* --- UI Overlays (full Liquid Glass) --- */
-#game-panel {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 260px;
-  z-index: 50;
-  pointer-events: auto;
-}
-
-#zoom-rail {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: auto;
-}
-
-#map-hint {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-  font-size: 10px;
-  padding: 6px 16px;
-  border-radius: 9999px;
-  background: rgba(0,0,0,0.65);
-  color: rgba(255,255,255,0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 6px 16px -10px rgb(0 0 0 / 0.5);
-  letter-spacing: 0.5px;
-}
-
 /* Progress */
 .progress-track {
   height: 3px;
@@ -428,28 +391,11 @@ body.is-dragging-map #map-viewport g[data-cid] path,
   transform-origin: 0 0;
 }
 
-/* Responsive tweaks (keep iPad-first) */
-@media (max-width: 900px) {
-  #map-hint {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  #game-panel {
-    width: calc(100% - 24px);
-    left: 12px;
-    right: 12px;
-    top: auto;
-    bottom: 12px;
-  }
-}
-
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass,
   .glass-fab,
   .glass-btn,
-  #map-hint {
+  .glass-hint {
     background: var(--glass-bg-solid);
   }
 }
@@ -473,7 +419,7 @@ body.is-dragging-map #map-viewport g[data-cid] path,
   .glass,
   .glass-fab,
   .glass-btn,
-  #map-hint {
+  .glass-hint {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -484,7 +430,7 @@ body.is-dragging-map #map-viewport g[data-cid] path,
     mix-blend-mode: normal;
   }
 
-  #map-hint {
+  .glass-hint {
     background: rgb(15 23 42);
   }
 }
@@ -507,7 +453,7 @@ body.is-dragging-map #map-viewport g[data-cid] path,
   .glass,
   .glass-fab,
   .glass-btn,
-  #map-hint {
+  .glass-hint {
     border-width: 1.5px;
   }
 
@@ -521,7 +467,7 @@ body.is-dragging-map #map-viewport g[data-cid] path,
     outline-width: 3px;
   }
 
-  #map-hint {
+  .glass-hint {
     background: rgba(2,6,23,0.94);
     color: white;
     border-color: var(--glass-border-strong);
@@ -532,7 +478,7 @@ body.is-dragging-map #map-viewport g[data-cid] path,
   .glass,
   .glass-fab,
   .glass-btn,
-  #map-hint {
+  .glass-hint {
     background: Canvas;
     border: 1px solid ButtonText;
     box-shadow: none;

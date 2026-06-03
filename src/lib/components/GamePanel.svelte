@@ -12,7 +12,7 @@
 
 <section
   id="game-panel"
-  class="glass glass-panel absolute top-3 right-3 w-64 sm:w-72 z-50 pointer-events-auto text-sm"
+  class="glass glass-panel absolute top-3 right-3 w-72 sm:w-80 z-50 pointer-events-auto text-sm"
   aria-labelledby="game-panel-title"
 >
   <div class="flex items-start justify-between gap-4 mb-2.5">
@@ -124,10 +124,10 @@
 
   <div class="sr-only" aria-live="polite">{mapState.lastMessage}</div>
 
-  <div class="action-row grid grid-cols-3 gap-2" role="group" aria-label="Game actions">
+  <div class="action-row grid grid-cols-3 gap-2.5" role="group" aria-label="Game actions">
     <button
       type="button"
-      class="action-button glass-contained-positive action-random touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
+      class="action-button glass-contained-positive action-random touch-target px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Reveal a random country"
       disabled={mapState.mode === 'quiz'}
       onclick={() => runMapCommand(mapState, 'game.revealRandom')}
@@ -136,7 +136,7 @@
     </button>
     <button
       type="button"
-      class="action-button glass-contained action-undo touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
+      class="action-button glass-contained action-undo touch-target px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Undo last reveal"
       disabled={!mapState.canUndo}
       onclick={() => runMapCommand(mapState, 'game.undo')}
@@ -145,7 +145,7 @@
     </button>
     <button
       type="button"
-      class="action-button glass-contained-danger action-reset touch-target px-2.5 py-2 text-white text-sm font-semibold rounded-2xl"
+      class="action-button glass-contained-danger action-reset touch-target px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Start a new game"
       onclick={() => runMapCommand(mapState, 'game.new')}
     >

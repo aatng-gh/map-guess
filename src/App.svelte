@@ -56,7 +56,7 @@
   <!-- Gesture hint -->
   <div
     id="map-hint"
-    class="map-hint-panel-aware glass pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-4 py-1.5 rounded-2xl tracking-[0.5px]"
+    class="glass glass-hint pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs px-4 py-1.5 rounded-2xl tracking-[0.5px]"
   >
     Drag • Pinch/scroll to zoom • Tap to reveal
   </div>
@@ -67,12 +67,9 @@
     background: var(--viewport-bg);
   }
 
-  @media (max-width: 640px) {
-    #map-hint.map-hint-panel-aware {
-      bottom: calc(12px + 8.5rem + env(safe-area-inset-bottom));
-      max-width: calc(100% - 24px);
-      text-align: center;
-      white-space: normal;
+  @media (max-width: 900px) {
+    #map-hint {
+      display: none;
     }
   }
 </style>
