@@ -38,7 +38,8 @@ state, and data validation are beginning to crowd the same state object.
 - [x] Add typed Svelte context helpers in `src/lib/context/mapContext.ts`.
 - [x] Add a command layer for keyboard and UI control routing.
 - [x] Introduce `GameModeController` and port Explore/Quiz tap handling to it.
-- [ ] Split `MapState` into view, reveal, session, and preferences stores.
+- [x] Split `MapState` responsibilities into view, reveal, session, and
+  persistence modules while keeping `MapState` as the UI facade.
 - [ ] Add versioned persistence adapters and migration tests.
 - [ ] Add component and browser regression tests.
 
@@ -55,8 +56,8 @@ state, and data validation are beginning to crowd the same state object.
 - Move keyboard shortcut routing into a small command layer so shortcuts call
   named commands instead of reaching directly into stores.
 
-Status: typed context helpers and command routing are complete. The deeper
-store split is still pending.
+Status: typed context helpers, command routing, and the first module split are
+complete. Preferences remain folded into `MapState` until settings exist.
 
 ## Phase 2: Game Mode Architecture
 
@@ -146,7 +147,7 @@ alias, and difficulty metadata are still pending.
 2. Extract typed context helpers. Done.
 3. Introduce command routing for keyboard and UI actions. Done.
 4. Introduce `GameModeController` and port Explore/Quiz to it. Done.
-5. Split `MapState` into view, reveal, session, and preferences stores.
+5. Split `MapState` into view, reveal, session, and persistence modules. Done.
 6. Add region quiz and end-of-round summary.
 7. Add versioned persistence and migration tests.
 8. Add browser regression tests for the UI paths already manually verified.

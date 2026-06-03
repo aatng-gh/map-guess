@@ -1,77 +1,37 @@
-import { ALL_IDS, COUNTRIES, COUNTRY_NAMES, TOTAL } from '$lib/data/countries';
+import { COUNTRY_NAMES, TOTAL } from '$lib/data/countries';
 import type { CountryId } from '$lib/data/countries';
+import {
+  modeStatusMessage,
+  newGameMessage,
+  nextTarget,
+  targetForMode,
+} from '$lib/game/gameSession';
 import {
   exploreMode,
   quizMode,
   type GameModeController,
   type GameModeRuntime,
 } from '$lib/game/gameModes';
+import type { GameMode } from '$lib/game/gameTypes';
+import {
+  clearSavedState,
+  readSavedState,
+  saveState,
+} from '$lib/game/mapPersistence';
+import {
+  randomUnrevealedCountry,
+  revealCountry as revealCountryInSet,
+} from '$lib/game/revealState';
+import { createDefaultView, requestFitView } from '$lib/game/viewState';
 import type { View } from '$lib/gestures/mapGestures';
-
-export type GameMode = 'explore' | 'quiz';
-
-interface PersistedMapState {
-  version: 1;
-  revealed: CountryId[];
-  mode: GameMode;
-  bestQuizScore: number;
-}
-
-const STORAGE_KEY = 'map-g:mvp-state';
-const DEFAULT_VIEW: View = { tx: 0, ty: 0, scale: 1 };
-
-function requestFitView() {
-  if (typeof window === 'undefined') return;
-
-  window.requestAnimationFrame(() => {
-    window.dispatchEvent(new window.CustomEvent('map:fit-view'));
-  });
-}
-
-function isCountryId(id: string): id is CountryId {
-  return ALL_IDS.has(id);
-}
-
-function nextTarget(exclude: Set<CountryId>) {
-  const remaining = COUNTRIES.filter((country) => !exclude.has(country.id));
-  if (remaining.length === 0) return null;
-  return remaining[Math.floor(Math.random() * remaining.length)].id;
-}
 
 function controllerForMode(mode: GameMode): GameModeController {
   return mode === 'quiz' ? quizMode : exploreMode;
 }
 
-function readSavedState(): PersistedMapState | null {
-  if (typeof localStorage === 'undefined') return null;
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as Partial<PersistedMapState>;
-    const mode = parsed.mode === 'quiz' ? 'quiz' : 'explore';
-    const revealed = Array.isArray(parsed.revealed)
-      ? parsed.revealed.filter(
-          (id): id is CountryId => typeof id === 'string' && isCountryId(id),
-        )
-      : [];
-
-    return {
-      version: 1,
-      revealed,
-      mode,
-      bestQuizScore:
-        typeof parsed.bestQuizScore === 'number' ? parsed.bestQuizScore : 0,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export class MapState {
   revealed = $state(new Set<CountryId>());
-  view = $state<View>({ ...DEFAULT_VIEW });
+  view = $state<View>(createDefaultView());
   mode = $state<GameMode>('explore');
   target = $state<CountryId | null>(null);
   correct = $state(0);
@@ -91,7 +51,7 @@ export class MapState {
       this.bestQuizScore = saved.bestQuizScore;
     }
 
-    this.target = this.mode === 'quiz' ? nextTarget(this.revealed) : null;
+    this.target = targetForMode(this.mode, this.revealed);
   }
 
   get total() {
@@ -168,14 +128,14 @@ export class MapState {
   }
 
   revealCountry(cid: CountryId) {
-    if (!isCountryId(cid)) return false;
-    if (this.revealed.has(cid)) {
-      this.lastMessage = `${COUNTRY_NAMES[cid]} already revealed`;
+    const result = revealCountryInSet(this.revealed, cid);
+    if (!result.changed) {
+      this.lastMessage = result.message;
       return false;
     }
 
-    this.revealed = new Set([...this.revealed, cid]);
-    this.lastMessage = `Revealed ${COUNTRY_NAMES[cid]}`;
+    this.revealed = result.revealed;
+    this.lastMessage = result.message;
     this.finishIfComplete();
     this.persist();
     return true;
@@ -191,13 +151,9 @@ export class MapState {
       return;
     }
 
-    const unrevealed = Array.from(ALL_IDS).filter(
-      (id) => !this.revealed.has(id),
-    );
-    if (unrevealed.length === 0) return;
-    this.revealCountry(
-      unrevealed[Math.floor(Math.random() * unrevealed.length)],
-    );
+    const cid = randomUnrevealedCountry(this.revealed);
+    if (!cid) return;
+    this.revealCountry(cid);
   }
 
   setMode(mode: GameMode) {
@@ -205,16 +161,15 @@ export class MapState {
 
     this.mode = mode;
     this.newGame();
-    this.target = mode === 'quiz' ? nextTarget(this.revealed) : null;
-    this.lastMessage =
-      mode === 'quiz' ? 'Find the highlighted target country' : 'Explore mode';
+    this.target = targetForMode(mode, this.revealed);
+    this.lastMessage = modeStatusMessage(mode);
     this.persist();
   }
 
   newGame() {
     const mode = this.mode;
     this.revealed = new Set();
-    this.view = { ...DEFAULT_VIEW };
+    this.view = createDefaultView();
     requestFitView();
     this.correct = 0;
     this.misses = 0;
@@ -223,9 +178,8 @@ export class MapState {
     this.startedAt = Date.now();
     this.completedAt = null;
     this.mode = mode;
-    this.target = this.mode === 'quiz' ? nextTarget(this.revealed) : null;
-    this.lastMessage =
-      this.mode === 'quiz' ? 'New quiz started' : 'New explore session';
+    this.target = targetForMode(this.mode, this.revealed);
+    this.lastMessage = newGameMessage(this.mode);
     this.persist();
   }
 
@@ -234,9 +188,7 @@ export class MapState {
   }
 
   clearSavedProgress() {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    clearSavedState();
     this.bestQuizScore = 0;
     this.newGame();
     this.lastMessage = 'Saved progress cleared';
@@ -244,15 +196,11 @@ export class MapState {
   }
 
   persist() {
-    if (typeof localStorage === 'undefined') return;
-
-    const payload: PersistedMapState = {
-      version: 1,
-      revealed: Array.from(this.revealed).filter(isCountryId),
+    saveState({
+      revealed: Array.from(this.revealed),
       mode: this.mode,
       bestQuizScore: this.bestQuizScore,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    });
   }
 
   private finishIfComplete() {
