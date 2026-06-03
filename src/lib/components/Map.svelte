@@ -3,6 +3,10 @@
   import { getMapContext } from '$lib/context/mapContext';
   import { COUNTRIES, COUNTRY_LABEL_ANCHORS } from '$lib/data/countries';
   import { panzoom } from '$lib/actions/panzoom';
+  import {
+    getMapLabelStrokeWidth,
+    layoutCountryLabels,
+  } from '$lib/components/labelLayout';
   import type { View } from '$lib/gestures/mapGestures';
 
   interface Props {
@@ -15,49 +19,15 @@
   let { view = $bindable({ tx: 0, ty: 0, scale: 1 }) }: Props = $props();
 
   const revealed = $derived(mapState.revealed || new Set());
-  const labelFontSize = $derived(Math.max(1.8, Math.min(10, 11 / view.scale)));
-  const labelStrokeWidth = $derived(
-    Math.max(0.35, Math.min(1.6, 2.2 / view.scale)),
-  );
+  const labelStrokeWidth = $derived(getMapLabelStrokeWidth(view.scale));
   const visibleLabels = $derived.by(() => {
-    const placed: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-    }[] = [];
-
-    return COUNTRIES.filter((country) => revealed.has(country.id))
+    const candidates = COUNTRIES.filter((country) => revealed.has(country.id))
       .map((country) => ({
         ...country,
         label: COUNTRY_LABEL_ANCHORS[country.id],
-      }))
-      .sort((a, b) => b.label.area - a.label.area)
-      .filter((country) => {
-        const width = Math.max(16, country.name.length * labelFontSize * 0.58);
-        const height = labelFontSize * 1.35;
-        const padding = 1.8 / view.scale;
-        const box = {
-          left: country.label.x - width / 2 - padding,
-          right: country.label.x + width / 2 + padding,
-          top: country.label.y - height / 2 - padding,
-          bottom: country.label.y + height / 2 + padding,
-        };
-        const overlaps = placed.some(
-          (other) =>
-            box.left < other.right &&
-            box.right > other.left &&
-            box.top < other.bottom &&
-            box.bottom > other.top,
-        );
+      }));
 
-        if (overlaps) {
-          return false;
-        }
-
-        placed.push(box);
-        return true;
-      });
+    return layoutCountryLabels(candidates, view.scale);
   });
 </script>
 
@@ -100,9 +70,9 @@
       {#each visibleLabels as country (country.id)}
         <text
           class="country-label"
-          x={country.label.x}
-          y={country.label.y}
-          style={`font-size: ${labelFontSize}px; stroke-width: ${labelStrokeWidth}px;`}
+          x={country.labelX}
+          y={country.labelY}
+          style={`font-size: ${country.fontSize}px; stroke-width: ${labelStrokeWidth}px;`}
         >
           {country.name}
         </text>
