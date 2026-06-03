@@ -19,6 +19,8 @@
   let { view = $bindable({ tx: 0, ty: 0, scale: 1 }) }: Props = $props();
 
   const revealed = $derived(mapState.revealed || new Set());
+  const incorrectPick = $derived(mapState.incorrectPick);
+  const incorrectPickPulse = $derived(mapState.incorrectPickPulse);
   const labelStrokeWidth = $derived(getMapLabelStrokeWidth(view.scale));
   const visibleLabels = $derived.by(() => {
     const candidates = COUNTRIES.filter((country) => revealed.has(country.id))
@@ -54,14 +56,18 @@
           id={country.id}
           data-cid={country.id}
           class:revealed={revealed.has(country.id)}
+          class:incorrect-pick={incorrectPick === country.id}
+          data-incorrect-pulse={incorrectPick === country.id ? incorrectPickPulse : undefined}
         >
-          {#each country.paths as p, i (i)}
-            <path
-              d={p.d}
-              class="land-path"
-              class:revealed={revealed.has(country.id)}
-            />
-          {/each}
+          {#key incorrectPick === country.id ? incorrectPickPulse : 0}
+            {#each country.paths as p, i (i)}
+              <path
+                d={p.d}
+                class="land-path"
+                class:revealed={revealed.has(country.id)}
+              />
+            {/each}
+          {/key}
         </g>
       {/each}
     </g>
@@ -95,6 +101,25 @@
     fill: var(--land-revealed);
     stroke: var(--land-revealed-stroke);
     stroke-width: 1.1;
+  }
+
+  g.incorrect-pick .land-path {
+    animation: incorrect-pick-pulse 520ms var(--ease);
+  }
+
+  @keyframes incorrect-pick-pulse {
+    0%,
+    100% {
+      fill: var(--land-unrevealed);
+      stroke: var(--land-unrevealed-stroke);
+      stroke-width: 0.7;
+    }
+
+    38% {
+      fill: color-mix(in oklch, var(--danger-solid), white 18%);
+      stroke: color-mix(in oklch, var(--danger-solid), black 18%);
+      stroke-width: 1.4;
+    }
   }
 
   .country-label {

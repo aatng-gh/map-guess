@@ -16,6 +16,7 @@ export interface GameModeRuntime {
   finishIfComplete: () => void;
   persist: () => void;
   setLastMessage: (message: string) => void;
+  setIncorrectPick: (cid: CountryId) => void;
   nextTarget: (exclude: Set<CountryId>) => CountryId | null;
   getRevealed: () => Set<CountryId>;
 }
@@ -54,6 +55,7 @@ export const quizMode: GameModeController = {
 
     runtime.incrementMisses();
     runtime.setStreak(0);
+    runtime.setIncorrectPick(cid);
     runtime.setLastMessage(`${COUNTRY_NAMES[cid]} is not ${runtime.getTargetName()}`);
   },
 };

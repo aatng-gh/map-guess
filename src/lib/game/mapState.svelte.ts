@@ -56,6 +56,8 @@ export class MapState {
   completedAt = $state<number | null>(null);
   bestQuizScore = $state(0);
   lastMessage = $state('Ready');
+  incorrectPick = $state<CountryId | null>(null);
+  incorrectPickPulse = $state(0);
   private history = $state<GameSnapshot[]>([]);
 
   constructor() {
@@ -138,6 +140,7 @@ export class MapState {
       setLastMessage: (message) => {
         this.lastMessage = message;
       },
+      setIncorrectPick: (cid) => this.markIncorrectPick(cid),
       nextTarget,
       getRevealed: () => this.revealed,
     };
@@ -203,6 +206,7 @@ export class MapState {
     this.bestStreak = snapshot.bestStreak;
     this.completedAt = snapshot.completedAt;
     this.bestQuizScore = snapshot.bestQuizScore;
+    this.incorrectPick = null;
     this.lastMessage = 'Undid last reveal';
     this.persist();
     return true;
@@ -220,6 +224,8 @@ export class MapState {
     this.bestStreak = 0;
     this.startedAt = Date.now();
     this.completedAt = null;
+    this.incorrectPick = null;
+    this.incorrectPickPulse = 0;
     this.mode = mode;
     this.target = targetForMode(this.mode, this.revealed);
     this.lastMessage = newGameMessage(this.mode);
@@ -258,6 +264,11 @@ export class MapState {
       return;
     }
     this.lastMessage = `Complete in ${this.elapsedSeconds}s`;
+  }
+
+  private markIncorrectPick(cid: CountryId) {
+    this.incorrectPick = cid;
+    this.incorrectPickPulse += 1;
   }
 
   private recordUndoCheckpoint() {

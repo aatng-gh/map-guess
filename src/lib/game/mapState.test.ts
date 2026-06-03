@@ -107,18 +107,25 @@ describe('MapState', () => {
     expect(state.correct).toBe(0);
     expect(state.misses).toBe(1);
     expect(state.streak).toBe(0);
+    expect(state.incorrectPick).toBe(secondCountry.id);
+    expect(state.incorrectPickPulse).toBe(1);
     expect(state.revealed.size).toBe(0);
     expect(state.lastMessage).toBe(
       `${secondCountry.name} is not ${firstCountry.name}`,
     );
 
+    state.answer(secondCountry.id);
+    expect(state.misses).toBe(2);
+    expect(state.incorrectPick).toBe(secondCountry.id);
+    expect(state.incorrectPickPulse).toBe(2);
+
     state.answer(firstCountry.id);
     expect(state.correct).toBe(1);
-    expect(state.misses).toBe(1);
+    expect(state.misses).toBe(2);
     expect(state.streak).toBe(1);
     expect(state.bestStreak).toBe(1);
     expect(state.revealed.has(firstCountry.id)).toBe(true);
-    expect(state.accuracy).toBe(50);
+    expect(state.accuracy).toBe(33);
     expect(localStorage.setItem).toHaveBeenCalled();
   });
 
