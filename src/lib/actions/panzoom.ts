@@ -80,6 +80,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
 
   const gesture = createGestureState();
   let currentView: View = params.view || { tx: 0, ty: 0, scale: 1 };
+  let minScale = 0.35;
   let initialFitFrame = 0;
   const svgPoint = node.createSVGPoint();
   let screenMatrixInverse: DOMMatrix | null = null;
@@ -142,17 +143,19 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
 
   function fitToScreen() {
     refreshCoordinateSpace();
-    setCurrentView(
-      fitViewToViewport(
-        getContentBounds(),
-        getViewBoxRect(node),
-        getViewportSize(),
-      ),
+    const fitView = fitViewToViewport(
+      getContentBounds(),
+      getViewBoxRect(node),
+      getViewportSize(),
     );
+    minScale = fitView.scale;
+    setCurrentView(fitView);
   }
 
   function zoomFromCenter(factor: number) {
-    setCurrentView(zoomAt(currentView, getViewportCenter(), factor));
+    setCurrentView(
+      zoomAt(currentView, getViewportCenter(), factor, { minScale }),
+    );
   }
 
   function setDragging(isDragging: boolean) {
@@ -244,6 +247,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
         gesture.prevPinch,
         nextPinch,
         centerWorld,
+        { minScale },
       );
       setCurrentView(
         applyPinchPan(zoomedView, gesture.prevPinch, nextPinch),
@@ -310,7 +314,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     refreshCoordinateSpace();
     const pt = getSVGPoint(e.clientX, e.clientY);
     const factor = e.deltaY < 0 ? 1.18 : 0.86;
-    setCurrentView(zoomAt(currentView, pt, factor));
+    setCurrentView(zoomAt(currentView, pt, factor, { minScale }));
   };
   node.addEventListener('wheel', onWheel, { passive: false });
 
@@ -319,7 +323,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     e.preventDefault();
     refreshCoordinateSpace();
     const pt = getSVGPoint(e.clientX, e.clientY);
-    setCurrentView(zoomAt(currentView, pt, 1.55));
+    setCurrentView(zoomAt(currentView, pt, 1.55, { minScale }));
   };
   node.addEventListener('dblclick', onDbl);
 
