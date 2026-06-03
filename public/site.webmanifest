@@ -1,0 +1,25 @@
+{
+  "name": "Map Guess",
+  "short_name": "Map Guess",
+  "description": "A friendly tap-to-reveal world map game.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#7dd3fc",
+  "theme_color": "#7dd3fc",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

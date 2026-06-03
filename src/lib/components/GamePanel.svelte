@@ -178,6 +178,11 @@
     background: rgb(255 255 255 / 0.16);
   }
 
+  #game-panel {
+    top: calc(0.75rem + env(safe-area-inset-top));
+    right: calc(0.75rem + env(safe-area-inset-right));
+  }
+
   .target-box,
   .summary-box {
     background: rgb(255 255 255 / 0.1);

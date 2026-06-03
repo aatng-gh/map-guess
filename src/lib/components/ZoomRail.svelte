@@ -38,3 +38,9 @@
     <span aria-hidden="true">−</span>
   </button>
 </div>
+
+<style>
+  #zoom-rail {
+    right: calc(0.75rem + env(safe-area-inset-right));
+  }
+</style>
