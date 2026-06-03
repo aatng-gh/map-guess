@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { COUNTRIES } from '$lib/data/countries';
+import { COUNTRIES, TOTAL } from '$lib/data/countries';
 import { MapState } from './mapState.svelte';
 
 const firstCountry = COUNTRIES[0];
@@ -139,6 +139,19 @@ describe('MapState', () => {
     expect(state.streak).toBe(0);
     expect(state.revealed.size).toBe(0);
     expect(state.target).toBe(firstCountry.id);
+  });
+
+  it('completes explore mode without reporting accuracy', () => {
+    const state = new MapState();
+    const finalCountry = COUNTRIES.at(-1);
+
+    state.revealed = new Set(COUNTRIES.slice(0, -1).map((country) => country.id));
+    expect(state.count).toBe(TOTAL - 1);
+
+    expect(state.revealCountry(finalCountry!.id)).toBe(true);
+    expect(state.isComplete).toBe(true);
+    expect(state.lastMessage).toMatch(/^Complete in \d+s$/);
+    expect(state.lastMessage).not.toContain('accuracy');
   });
 
   it('clears saved progress and starts a fresh game', () => {

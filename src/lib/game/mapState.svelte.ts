@@ -254,8 +254,10 @@ export class MapState {
     this.target = null;
     if (this.mode === 'quiz') {
       this.bestQuizScore = Math.max(this.bestQuizScore, this.correct);
+      this.lastMessage = `Complete: ${this.accuracy}% accuracy in ${this.elapsedSeconds}s`;
+      return;
     }
-    this.lastMessage = `Complete: ${this.accuracy}% accuracy in ${this.elapsedSeconds}s`;
+    this.lastMessage = `Complete in ${this.elapsedSeconds}s`;
   }
 
   private recordUndoCheckpoint() {

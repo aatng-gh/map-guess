@@ -113,7 +113,11 @@
     <div class="summary-box mb-3 rounded-2xl px-3 py-2 text-xs">
       <div class="font-semibold">Round complete</div>
       <div class="mt-1 text-[color:var(--text-muted)]">
-        {mapState.accuracy}% accuracy in {mapState.elapsedSeconds}s
+        {#if mapState.mode === 'quiz'}
+          {mapState.accuracy}% accuracy in {mapState.elapsedSeconds}s
+        {:else}
+          Completed in {mapState.elapsedSeconds}s
+        {/if}
       </div>
     </div>
   {/if}
