@@ -38,6 +38,8 @@ state, and data validation are beginning to crowd the same state object.
 - [x] Add typed Svelte context helpers in `src/lib/context/mapContext.ts`.
 - [x] Add a command layer for keyboard and UI control routing.
 - [x] Introduce `GameModeController` and port Explore/Quiz tap handling to it.
+- [x] Move mode lifecycle, status copy, completion copy, and summaries behind
+  `GameModeController`.
 - [x] Split `MapState` responsibilities into view, reveal, session, and
   persistence modules while keeping `MapState` as the UI facade.
 - [x] Add versioned persistence adapters and migration tests.
@@ -74,8 +76,8 @@ complete. Preferences remain folded into `MapState` until settings exist.
 - Keep scoring rules inside mode controllers, not shared UI components.
 - Make end-of-round summaries consume a normalized `GameSummary`.
 
-Status: Explore/Quiz tap handling now lives behind `GameModeController`.
-Controller lifecycle, summaries, and region modes are still pending.
+Status: Explore/Quiz tap handling, lifecycle, status copy, completion copy, and
+summaries now live behind `GameModeController`. Region modes are still pending.
 
 ## Phase 3: Country Data Model
 
@@ -151,7 +153,7 @@ progress. Preference persistence remains pending until settings exist.
 3. Introduce command routing for keyboard and UI actions. Done.
 4. Introduce `GameModeController` and port Explore/Quiz to it. Done.
 5. Split `MapState` into view, reveal, session, and persistence modules. Done.
-6. Add region quiz and end-of-round summary.
+6. Add region quiz. End-of-round summaries are done.
 7. Add versioned persistence and migration tests. Done.
 8. Add browser regression tests for the UI paths already manually verified.
 

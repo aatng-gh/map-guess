@@ -1,15 +1,9 @@
 import { COUNTRY_NAMES, TOTAL } from '$lib/data/countries';
 import type { CountryId } from '$lib/data/countries';
+import { nextTarget } from '$lib/game/gameSession';
 import {
-  modeStatusMessage,
-  newGameMessage,
-  nextTarget,
-  targetForMode,
-} from '$lib/game/gameSession';
-import {
-  exploreMode,
+  controllerForMode,
   quizMode,
-  type GameModeController,
   type GameModeRuntime,
 } from '$lib/game/gameModes';
 import type { GameMode } from '$lib/game/gameTypes';
@@ -39,10 +33,6 @@ interface GameSnapshot {
 
 const MAX_HISTORY = 200;
 
-function controllerForMode(mode: GameMode): GameModeController {
-  return mode === 'quiz' ? quizMode : exploreMode;
-}
-
 export class MapState {
   revealed = $state(new Set<CountryId>());
   view = $state<View>(createDefaultView());
@@ -68,7 +58,7 @@ export class MapState {
       this.bestQuizScore = saved.bestQuizScore;
     }
 
-    this.target = targetForMode(this.mode, this.revealed);
+    this.target = this.modeController.initialTarget(this.revealed);
   }
 
   get total() {
@@ -109,9 +99,16 @@ export class MapState {
     return controllerForMode(this.mode);
   }
 
+  get summary() {
+    return this.modeController.summary(this.modeRuntime);
+  }
+
   get modeRuntime(): GameModeRuntime {
     return {
       getCompletedAt: () => this.completedAt,
+      getCorrect: () => this.correct,
+      getAccuracy: () => this.accuracy,
+      getElapsedSeconds: () => this.elapsedSeconds,
       incrementCorrect: () => {
         this.correct += 1;
       },
@@ -124,6 +121,9 @@ export class MapState {
       },
       setBestStreak: (bestStreak) => {
         this.bestStreak = Math.max(this.bestStreak, bestStreak);
+      },
+      setBestQuizScore: (score) => {
+        this.bestQuizScore = Math.max(this.bestQuizScore, score);
       },
       getTarget: () => this.target,
       setTarget: (target) => {
@@ -185,8 +185,8 @@ export class MapState {
 
     this.mode = mode;
     this.newGame();
-    this.target = targetForMode(mode, this.revealed);
-    this.lastMessage = modeStatusMessage(mode);
+    this.target = this.modeController.initialTarget(this.revealed);
+    this.lastMessage = this.modeController.statusMessage;
     this.persist();
   }
 
@@ -227,8 +227,8 @@ export class MapState {
     this.incorrectPick = null;
     this.incorrectPickPulse = 0;
     this.mode = mode;
-    this.target = targetForMode(this.mode, this.revealed);
-    this.lastMessage = newGameMessage(this.mode);
+    this.target = this.modeController.initialTarget(this.revealed);
+    this.lastMessage = this.modeController.newGameMessage;
     this.persist();
   }
 
@@ -258,12 +258,7 @@ export class MapState {
 
     this.completedAt = Date.now();
     this.target = null;
-    if (this.mode === 'quiz') {
-      this.bestQuizScore = Math.max(this.bestQuizScore, this.correct);
-      this.lastMessage = `Complete: ${this.accuracy}% accuracy in ${this.elapsedSeconds}s`;
-      return;
-    }
-    this.lastMessage = `Complete in ${this.elapsedSeconds}s`;
+    this.lastMessage = this.modeController.complete(this.modeRuntime);
   }
 
   private markIncorrectPick(cid: CountryId) {

@@ -8,6 +8,7 @@
   const total = $derived(mapState.total);
   const pct = $derived(mapState.completionPct);
   const targetName = $derived(mapState.targetName);
+  const summary = $derived(mapState.summary);
 </script>
 
 <section
@@ -109,13 +110,9 @@
 
   {#if mapState.isComplete}
     <div class="summary-box mb-3 rounded-2xl px-3 py-2 text-xs">
-      <div class="font-semibold">Round complete</div>
+      <div class="font-semibold">{summary.title}</div>
       <div class="mt-1 text-[color:var(--text-muted)]">
-        {#if mapState.mode === 'quiz'}
-          {mapState.accuracy}% accuracy in {mapState.elapsedSeconds}s
-        {:else}
-          Completed in {mapState.elapsedSeconds}s
-        {/if}
+        {summary.detail}
       </div>
     </div>
   {/if}
