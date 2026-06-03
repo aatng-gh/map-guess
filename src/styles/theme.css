@@ -264,6 +264,16 @@ body {
   filter: drop-shadow(0 1px 2px var(--land-revealed-shadow));
 }
 
+#world-map.map-pressed path,
+#world-map.dragging path {
+  transition: none;
+}
+
+#world-map.map-pressed path.revealed,
+#world-map.dragging path.revealed {
+  filter: none;
+}
+
 #world-map text,
 #labels text {
   font-family: inherit;

@@ -82,6 +82,8 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   let currentView: View = params.view || { tx: 0, ty: 0, scale: 1 };
   let minScale = 0.35;
   let initialFitFrame = 0;
+  let transformFrame = 0;
+  let pendingSyncExternal = false;
   const svgPoint = node.createSVGPoint();
   let screenMatrixInverse: DOMMatrix | null = null;
 
@@ -111,8 +113,35 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
     if (syncExternal) syncView();
   }
 
-  function setCurrentView(nextView: View, syncExternal = true) {
+  function flushScheduledTransform() {
+    transformFrame = 0;
+    updateTransform(pendingSyncExternal);
+    pendingSyncExternal = false;
+  }
+
+  function scheduleTransform(syncExternal = true) {
+    pendingSyncExternal = pendingSyncExternal || syncExternal;
+    if (transformFrame) return;
+
+    transformFrame = window.requestAnimationFrame(flushScheduledTransform);
+  }
+
+  function setCurrentView(
+    nextView: View,
+    syncExternal = true,
+    deferTransform = false,
+  ) {
     currentView = nextView;
+    if (deferTransform) {
+      scheduleTransform(syncExternal);
+      return;
+    }
+
+    if (transformFrame) {
+      window.cancelAnimationFrame(transformFrame);
+      transformFrame = 0;
+      pendingSyncExternal = false;
+    }
     updateTransform(syncExternal);
   }
 
@@ -231,6 +260,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       setCurrentView(
         panToPointer(currentView, gesture.dragStart, getWorldPoint(client)),
         false,
+        true,
       );
     } else if (gesture.pointers.size === 2) {
       const nextPinch = getPinchFrame(gesture.pointers.values());
@@ -252,6 +282,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       setCurrentView(
         applyPinchPan(zoomedView, gesture.prevPinch, nextPinch),
         false,
+        true,
       );
       gesture.prevPinch = nextPinch;
     }
@@ -382,6 +413,7 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       window.removeEventListener('keydown', onKeydown);
       window.removeEventListener('resize', refreshCoordinateSpace);
       window.cancelAnimationFrame(initialFitFrame);
+      if (transformFrame) window.cancelAnimationFrame(transformFrame);
       setMapPressed(false);
       setDragging(false);
     },
