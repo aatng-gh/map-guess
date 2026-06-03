@@ -19,28 +19,28 @@
     <div>
       <h1
         id="game-panel-title"
-        class="m-0 font-semibold text-2xl tracking-[-0.03em] leading-none"
+        class="panel-title m-0 font-semibold text-2xl tracking-[-0.03em] leading-none"
       >
         Map Guess
       </h1>
       <div
-        class="text-[10px] text-[color:var(--accent)] tracking-[1.5px] mt-0.5 uppercase"
+        class="panel-kicker text-[10px] text-[color:var(--accent)] tracking-[1.5px] mt-0.5 uppercase"
       >
         {mapState.mode === 'quiz' ? 'Country Quiz' : 'World Explorer'}
       </div>
     </div>
-    <div class="text-right leading-none" aria-live="polite">
-      <div class="text-[10px] text-[color:var(--accent)] tracking-widest">
+    <div class="panel-counter text-right leading-none" aria-live="polite">
+      <div class="counter-label text-[10px] text-[color:var(--accent)] tracking-widest">
         REVEALED
       </div>
-      <div class="font-semibold tabular-nums text-xl tracking-tighter">
+      <div class="counter-value font-semibold tabular-nums text-xl tracking-tighter">
         <span>{count}</span>/<span>{total}</span>
       </div>
     </div>
   </div>
 
   <div
-    class="mb-3 grid grid-cols-2 rounded-2xl bg-white/8 p-1 text-xs font-semibold"
+    class="mode-switch mb-3 grid grid-cols-2 rounded-2xl bg-white/8 p-1 text-xs font-semibold"
     role="group"
     aria-label="Game mode"
   >
@@ -187,5 +187,87 @@
   .action-button:disabled {
     cursor: not-allowed;
     opacity: 0.45;
+  }
+
+  @media (max-width: 900px) {
+    #game-panel {
+      top: auto;
+      right: auto;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      left: 50%;
+      width: min(22rem, calc(100vw - 24px));
+      padding: 0.75rem;
+      transform: translateX(-50%);
+      font-size: 0.8125rem;
+    }
+
+    .panel-title {
+      font-size: 1.25rem;
+    }
+
+    .panel-kicker,
+    .counter-label {
+      font-size: 0.5625rem;
+      letter-spacing: 1.2px;
+    }
+
+    .counter-value {
+      font-size: 1rem;
+    }
+
+    .mode-switch {
+      margin-bottom: 0.5rem;
+      border-radius: 14px;
+    }
+
+    .mode-button {
+      border-radius: 10px;
+      padding: 0.3125rem 0.5rem;
+    }
+
+    .progress-track {
+      margin-bottom: 0.625rem;
+    }
+
+    .target-box,
+    .summary-box {
+      margin-bottom: 0.625rem;
+      padding: 0.5rem 0.625rem;
+      border-radius: 14px;
+    }
+
+    .action-row {
+      gap: 0.5rem;
+    }
+
+    .action-button {
+      min-height: 38px;
+      border-radius: 14px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .clear-button {
+      margin-top: 0.5rem;
+      border-radius: 14px;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.6875rem;
+    }
+  }
+
+  @media (max-width: 380px) {
+    #game-panel {
+      width: min(20rem, calc(100vw - 20px));
+      padding: 0.625rem;
+    }
+
+    .panel-title {
+      font-size: 1.125rem;
+    }
+
+    .action-button {
+      min-height: 36px;
+      padding-inline: 0.625rem;
+    }
   }
 </style>

@@ -430,6 +430,12 @@ body.is-dragging-map #map-viewport g[data-cid] path,
 }
 
 /* Responsive tweaks (keep iPad-first) */
+@media (max-width: 900px) {
+  #map-hint {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   #game-panel {
     width: calc(100% - 24px);
@@ -437,10 +443,6 @@ body.is-dragging-map #map-viewport g[data-cid] path,
     right: 12px;
     top: auto;
     bottom: 12px;
-  }
-
-  #map-hint {
-    display: none;
   }
 }
 
