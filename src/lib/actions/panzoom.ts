@@ -349,15 +349,6 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
   };
   node.addEventListener('wheel', onWheel, { passive: false });
 
-  // Double-tap / dblclick zoom in
-  const onDbl = (e: MouseEvent) => {
-    e.preventDefault();
-    refreshCoordinateSpace();
-    const pt = getSVGPoint(e.clientX, e.clientY);
-    setCurrentView(zoomAt(currentView, pt, 1.55, { minScale }));
-  };
-  node.addEventListener('dblclick', onDbl);
-
   refreshCoordinateSpace();
   updateTransform();
   initialFitFrame = window.requestAnimationFrame(fitToScreen);
@@ -407,7 +398,6 @@ export const panzoom: Action<SVGSVGElement, PanZoomParams | undefined> = (
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
       node.removeEventListener('wheel', onWheel);
-      node.removeEventListener('dblclick', onDbl);
       window.removeEventListener('map:fit-view', onFitRequest);
       window.removeEventListener('map:zoom-view', onZoomRequest);
       window.removeEventListener('keydown', onKeydown);
