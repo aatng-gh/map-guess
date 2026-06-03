@@ -21,6 +21,8 @@
       getView: () => ({ ...mapState.view }),
       getMode: () => mapState.mode,
       getTargetName: () => mapState.targetName,
+      canUndo: () => mapState.canUndo,
+      undo: () => mapState.undoLastAction(),
     };
   }
 

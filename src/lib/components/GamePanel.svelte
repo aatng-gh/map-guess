@@ -130,6 +130,14 @@
       Random
     </button>
     <button
+      class="action-button glass-contained action-undo touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
+      aria-label="Undo last reveal"
+      disabled={!mapState.canUndo}
+      onclick={() => runMapCommand(mapState, 'game.undo')}
+    >
+      Undo
+    </button>
+    <button
       class="action-button glass-contained-danger action-reset touch-target flex-1 px-3 py-2 text-white text-sm font-semibold rounded-2xl"
       aria-label="Start a new game"
       onclick={() => runMapCommand(mapState, 'game.new')}
@@ -175,13 +183,25 @@
     font-weight: 700;
   }
 
-  .stat-label,
-  .clear-button {
+  .stat-label {
     color: var(--text-muted);
   }
 
   .clear-button {
-    background: rgb(255 255 255 / 0.06);
+    color: color-mix(in oklch, var(--text-on-glass), var(--danger) 16%);
+    background: rgb(255 255 255 / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+    transition:
+      color 160ms var(--ease),
+      background 160ms var(--ease),
+      box-shadow 160ms var(--ease);
+  }
+
+  .clear-button:hover,
+  .clear-button:focus-visible {
+    color: white;
+    background: color-mix(in oklch, var(--glass-bg-strong), var(--danger) 16%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--glass-border-strong), var(--danger) 28%);
   }
 
   .action-button:disabled {

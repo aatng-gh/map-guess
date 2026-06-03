@@ -62,6 +62,25 @@ describe('MapState', () => {
     expect(state.lastMessage).toBe(`${firstCountry.name} already revealed`);
   });
 
+  it('undoes the most recent explore reveal', () => {
+    const state = new MapState();
+
+    state.revealCountry(firstCountry.id);
+    state.revealCountry(secondCountry.id);
+
+    expect(state.canUndo).toBe(true);
+    expect(state.count).toBe(2);
+
+    expect(state.undoLastAction()).toBe(true);
+    expect(state.revealed).toEqual(new Set([firstCountry.id]));
+    expect(state.count).toBe(1);
+    expect(state.lastMessage).toBe('Undid last reveal');
+
+    expect(state.undoLastAction()).toBe(true);
+    expect(state.revealed.size).toBe(0);
+    expect(state.canUndo).toBe(false);
+  });
+
   it('loads only valid saved progress', () => {
     vi.mocked(localStorage.getItem).mockReturnValue(
       JSON.stringify({
@@ -101,6 +120,25 @@ describe('MapState', () => {
     expect(state.revealed.has(firstCountry.id)).toBe(true);
     expect(state.accuracy).toBe(50);
     expect(localStorage.setItem).toHaveBeenCalled();
+  });
+
+  it('undoes a correct quiz reveal with score and target restored', () => {
+    const state = new MapState();
+    state.setMode('quiz');
+    state.target = firstCountry.id;
+
+    state.answer(firstCountry.id);
+
+    expect(state.correct).toBe(1);
+    expect(state.revealed.has(firstCountry.id)).toBe(true);
+    expect(state.target).not.toBe(firstCountry.id);
+
+    expect(state.undoLastAction()).toBe(true);
+    expect(state.correct).toBe(0);
+    expect(state.misses).toBe(0);
+    expect(state.streak).toBe(0);
+    expect(state.revealed.size).toBe(0);
+    expect(state.target).toBe(firstCountry.id);
   });
 
   it('clears saved progress and starts a fresh game', () => {

@@ -18,6 +18,9 @@ export function runMapCommand(mapState: MapState, command: string) {
     case 'game.new':
       mapState.newGame();
       return true;
+    case 'game.undo':
+      mapState.undoLastAction();
+      return true;
     case 'game.clearSavedProgress':
       mapState.clearSavedProgress();
       return true;
@@ -39,6 +42,7 @@ export function commandForShortcut(key: string) {
   const normalized = key.toLowerCase();
 
   if (normalized === 'r') return 'game.revealRandom';
+  if (normalized === 'u') return 'game.undo';
   if (key === 'Escape') return 'game.new';
   if (key === '+' || key === '=') return 'view.zoomIn';
   if (key === '-' || key === '_') return 'view.zoomOut';

@@ -11,6 +11,7 @@ export interface GameModeRuntime {
   setTarget: (target: CountryId | null) => void;
   getTargetName: () => string | null;
   revealCountry: (cid: CountryId) => boolean;
+  recordUndoCheckpoint: () => void;
   setRevealed: (revealed: Set<CountryId>) => void;
   finishIfComplete: () => void;
   persist: () => void;
@@ -39,6 +40,7 @@ export const quizMode: GameModeController = {
 
     if (cid === target) {
       const nextRevealed = new Set([...runtime.getRevealed(), cid]);
+      runtime.recordUndoCheckpoint();
       runtime.setRevealed(nextRevealed);
       runtime.incrementCorrect();
       runtime.setStreak(runtime.getStreak() + 1);

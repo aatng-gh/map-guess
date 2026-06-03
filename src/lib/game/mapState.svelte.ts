@@ -25,6 +25,20 @@ import {
 import { createDefaultView, requestFitView } from '$lib/game/viewState';
 import type { View } from '$lib/gestures/mapGestures';
 
+interface GameSnapshot {
+  revealed: Set<CountryId>;
+  target: CountryId | null;
+  correct: number;
+  misses: number;
+  streak: number;
+  bestStreak: number;
+  completedAt: number | null;
+  bestQuizScore: number;
+  lastMessage: string;
+}
+
+const MAX_HISTORY = 200;
+
 function controllerForMode(mode: GameMode): GameModeController {
   return mode === 'quiz' ? quizMode : exploreMode;
 }
@@ -42,6 +56,7 @@ export class MapState {
   completedAt = $state<number | null>(null);
   bestQuizScore = $state(0);
   lastMessage = $state('Ready');
+  private history = $state<GameSnapshot[]>([]);
 
   constructor() {
     const saved = loadSavedState();
@@ -84,6 +99,10 @@ export class MapState {
     return this.count >= this.total;
   }
 
+  get canUndo() {
+    return this.history.length > 0;
+  }
+
   get modeController() {
     return controllerForMode(this.mode);
   }
@@ -110,6 +129,7 @@ export class MapState {
       },
       getTargetName: () => this.targetName,
       revealCountry: (cid) => this.revealCountry(cid),
+      recordUndoCheckpoint: () => this.recordUndoCheckpoint(),
       setRevealed: (revealed) => {
         this.revealed = revealed;
       },
@@ -134,6 +154,7 @@ export class MapState {
       return false;
     }
 
+    this.recordUndoCheckpoint();
     this.revealed = result.revealed;
     this.lastMessage = result.message;
     this.finishIfComplete();
@@ -166,9 +187,31 @@ export class MapState {
     this.persist();
   }
 
+  undoLastAction() {
+    const snapshot = this.history.at(-1);
+    if (!snapshot) {
+      this.lastMessage = 'Nothing to undo';
+      return false;
+    }
+
+    this.history = this.history.slice(0, -1);
+    this.revealed = new Set(snapshot.revealed);
+    this.target = snapshot.target;
+    this.correct = snapshot.correct;
+    this.misses = snapshot.misses;
+    this.streak = snapshot.streak;
+    this.bestStreak = snapshot.bestStreak;
+    this.completedAt = snapshot.completedAt;
+    this.bestQuizScore = snapshot.bestQuizScore;
+    this.lastMessage = 'Undid last reveal';
+    this.persist();
+    return true;
+  }
+
   newGame() {
     const mode = this.mode;
     this.revealed = new Set();
+    this.history = [];
     this.view = createDefaultView();
     requestFitView();
     this.correct = 0;
@@ -190,6 +233,7 @@ export class MapState {
   clearSavedProgress() {
     clearSavedState();
     this.bestQuizScore = 0;
+    this.history = [];
     this.newGame();
     this.lastMessage = 'Saved progress cleared';
     this.persist();
@@ -212,5 +256,21 @@ export class MapState {
       this.bestQuizScore = Math.max(this.bestQuizScore, this.correct);
     }
     this.lastMessage = `Complete: ${this.accuracy}% accuracy in ${this.elapsedSeconds}s`;
+  }
+
+  private recordUndoCheckpoint() {
+    const snapshot: GameSnapshot = {
+      revealed: new Set(this.revealed),
+      target: this.target,
+      correct: this.correct,
+      misses: this.misses,
+      streak: this.streak,
+      bestStreak: this.bestStreak,
+      completedAt: this.completedAt,
+      bestQuizScore: this.bestQuizScore,
+      lastMessage: this.lastMessage,
+    };
+
+    this.history = [...this.history, snapshot].slice(-MAX_HISTORY);
   }
 }
